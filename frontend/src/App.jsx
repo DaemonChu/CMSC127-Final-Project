@@ -121,20 +121,43 @@
 // export default App
 
 
-
+// /* 
+// ============================================================
+// NOTE: placeholder UI for testing only, remove whenever
+// ============================================================
+// */
 // DEBUG: frontend + backend integration
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
+
+// function App() {
+//   const [msg, setMsg] = useState("");
+
+//   useEffect(() => {
+//     fetch("http://localhost:5000/api/test")
+//       .then(res => res.json())
+//       .then(data => setMsg(data.message));
+//   }, []);
+
+//   return <h1>{msg}</h1>;
+// }
+
+// export default App;
+
+
+/* 
+============================================================
+NOTE: placeholder UI for testing only, remove whenever
+============================================================
+*/
+import DriverList from "./components/driverList.jsx";
 
 function App() {
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/test")
-      .then(res => res.json())
-      .then(data => setMsg(data.message));
-  }, []);
-
-  return <h1>{msg}</h1>;
+    return (
+        <div>
+            <h1>LTO IMS</h1>
+            <DriverList />
+        </div>
+    );
 }
 
 export default App;

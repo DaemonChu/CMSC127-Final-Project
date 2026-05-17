@@ -5,10 +5,13 @@ TO DO:
 
 [ CRUD ]
 - getAllDrivers (DONE)
+- getAllArchivedDrivers (DONE)
 - createDriver (DONE)
 - searchDriver (DONE)
 - updateDriver (DONE; do refresh @ UI)
 - removeDriver (DONE)
+- archiveDriver (DONE)
+- unarchiveDriver (DONE)
 
 [ REPORTS ]
  - View all registered drivers filtered by: License type, License status, Age range, Sex (DONE)
@@ -26,6 +29,7 @@ export const getAllDrivers = async (req, res) => {
     const { sortBy, order } = req.query;
 
     const data = await driverService.getAllDrivers(sortBy, order);
+
     if (!data.length) {
       return res.status(404).json({
         message: "No drivers found",
@@ -38,6 +42,57 @@ export const getAllDrivers = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch drivers",
+      error: err.message,
+    });
+  }
+};
+
+// --- GET ARCHIVED DRIVERS ---
+export const getAllArchivedDrivers = async (req, res) => {
+  try {
+    const { sortBy, order } = req.query;
+
+    const data = await driverService.getAllArchivedDrivers(sortBy, order);
+
+    if (!data.length) {
+      return res.status(404).json({ message: "No archived drivers found" });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error("GET ALL ARCHIVED DRIVERS ERROR:", err);
+
+    res.status(500).json({
+      message: "Failed to fetch archived drivers",
+      error: err.message,
+    });
+  }
+};
+
+// --- SEARCH DRIVERS (ACTIVE / ARCHIVED) ---
+export const searchDrivers = async (req, res) => {
+  try {
+    const { keyword = "", archived = "false" } = req.query;
+
+    const isArchived = archived === "true";
+
+    const result = await driverService.searchDrivers(keyword, isArchived);
+
+    if (!result.length) {
+      return res.status(404).json({
+        message: "No drivers found",
+      });
+    }
+
+    res.json({
+      message: "Driver(s) found",
+      result,
+    });
+  } catch (err) {
+    console.error("SEARCH DRIVER ERROR:", err);
+
+    res.status(500).json({
+      message: "Search failed",
       error: err.message,
     });
   }
@@ -106,6 +161,49 @@ export const updateDriver = async (req, res) => {
   }
 };
 
+// --- ARCHIVE DRIVER ---
+export const archiveDriver = async (req, res) => {
+  try {
+    const result = await driverService.archiveDriver(req.params.license_number);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    res.json({ message: "Driver archived successfully" });
+  } catch (err) {
+    console.error("ARCHIVE DRIVER ERROR:", err);
+
+    res.status(500).json({
+      message: "Failed to archive driver",
+      error: err.message,
+    });
+  }
+};
+
+// --- UNARCHIVE DRIVER ---
+export const unarchiveDriver = async (req, res) => {
+  try {
+    const result = await driverService.unarchiveDriver(
+      req.params.license_number,
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    res.json({ message: "Driver unarchived successfully" });
+  } catch (err) {
+    console.error("UNARCHIVE DRIVER ERROR:", err);
+
+    res.status(500).json({
+      message: "Failed to unarchive driver",
+      error: err.message,
+    });
+  }
+};
+
+// (!! FIX: UI PEOPLE, PLEASE PLEASE DO USER CONFIRMATION SINCE THIS DELETES EVERY TRACE OF A DRIVER)
 // --- DELETE DRIVER ---
 export const deleteDriver = async (req, res) => {
   try {
@@ -119,32 +217,13 @@ export const deleteDriver = async (req, res) => {
     }
 
     res.json({
-      message: "Driver deleted successfully",
+      message: "Driver permanently deleted",
     });
   } catch (err) {
     console.error("DELETE DRIVER ERROR:", err);
 
     res.status(500).json({
       message: "Failed to delete driver",
-      error: err.message,
-    });
-  }
-};
-
-// --- SEARCH DRIVER ---
-export const searchDrivers = async (req, res) => {
-  try {
-    const result = await driverService.searchDrivers(req.query.keyword || "");
-
-    res.json({
-      message: "Driver found",
-      result,
-    });
-  } catch (err) {
-    console.error("SEARCH DRIVER ERROR:", err);
-
-    res.status(500).json({
-      message: "Search failed",
       error: err.message,
     });
   }

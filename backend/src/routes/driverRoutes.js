@@ -1,8 +1,11 @@
 import express from "express";
 import {
   getAllDrivers,
+  getAllArchivedDrivers,
   createDriver,
   updateDriver,
+  archiveDriver,
+  unarchiveDriver,
   deleteDriver,
   searchDrivers,
   getDriversByLicenseType,
@@ -16,9 +19,12 @@ const router = express.Router();
 
 // === CRUD ===
 router.get("/", getAllDrivers);
+router.get("/archived", getAllArchivedDrivers);
 router.get("/search", searchDrivers);
 router.post("/", createDriver);
 router.patch("/:license_number", updateDriver);
+router.patch("/archive/:license_number", archiveDriver);
+router.patch("/unarchive/:license_number", unarchiveDriver);
 router.delete("/:license_number", deleteDriver);
 
 // == REPORT ==

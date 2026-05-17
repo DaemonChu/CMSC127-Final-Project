@@ -39,15 +39,57 @@ function buildOrderBy(sortBy = "full_name", order = "ASC") {
 // CRUD
 // =====================
 
-// --- GET ALL DRIVERS ---
+// --- GET ALL DRIVERS (ACTIVE) ---
 export async function getAllDrivers(sortBy, order) {
   const orderBy = buildOrderBy(sortBy, order);
 
   const [rows] = await db.query(`
     SELECT *
     FROM driver
+    WHERE is_archived = FALSE
     ${orderBy}
   `);
+
+  return rows;
+}
+
+// --- GET ALL DRIVES (ARCHIVED) ---
+export async function getAllArchivedDrivers(sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+
+  const [rows] = await db.query(`
+    SELECT *
+    FROM driver
+    WHERE is_archived = TRUE
+    ${orderBy}
+  `);
+
+  return rows;
+}
+
+// --- SEARCH DRIVERS (archived/unarchived) ---
+export async function searchDrivers(keyword, isArchived = false) {
+  const search = `%${keyword}%`;
+
+  const query = `
+    SELECT *
+    FROM driver
+    WHERE is_archived = ?
+      AND (
+        full_name LIKE ?
+        OR license_number LIKE ?
+        OR city LIKE ?
+        OR province LIKE ?
+      )
+  `;
+
+  const [rows] = await db.query(query, [
+    isArchived ? true : false,
+    search,
+    search,
+    search,
+    search,
+  ]);
 
   return rows;
 }
@@ -107,7 +149,9 @@ export async function updateDriver(license_number, data) {
       license_status = ?,
       license_issuance_date = ?,
       license_expiration_date = ?
-    WHERE license_number = ?
+    WHERE 
+      is_archived = FALSE AND
+      license_number = ?
   `;
 
   const values = [
@@ -129,32 +173,44 @@ export async function updateDriver(license_number, data) {
   return result;
 }
 
-// --- REMOVE DRIVER ---
-export async function deleteDriver(license_number) {
+// --- ARCHIVE DRIVER (SOFT DELETE) ---
+export async function archiveDriver(license_number) {
   const [result] = await db.query(
-    "DELETE FROM driver WHERE license_number = ?",
+    `
+    UPDATE driver
+    SET is_archived = TRUE
+    WHERE license_number = ?
+  `,
     [license_number],
   );
 
   return result;
 }
 
-// --- SEARCH DRIVERS ---
-export async function searchDrivers(keyword) {
-  const search = `%${keyword}%`;
+export async function unarchiveDriver(license_number) {
+  const [result] = await db.query(
+    `
+    UPDATE driver
+    SET is_archived = FALSE
+    WHERE license_number = ?
+  `,
+    [license_number],
+  );
 
-  // (!! FIX: UPDATE ONCE UI IS IMPLEMENTED)
-  const query = `
-    SELECT * FROM driver
-    WHERE full_name LIKE ?
-       OR license_number LIKE ?
-       OR city LIKE ?
-       OR province LIKE ?
-  `;
+  return result;
+}
 
-  const [rows] = await db.query(query, [search, search, search, search]);
+// --- REMOVE DRIVER (HARD DELETE)---
+export async function deleteDriver(license_number) {
+  const [result] = await db.query(
+    `
+    DELETE FROM driver 
+    WHERE license_number = ?
+    `,
+    [license_number],
+  );
 
-  return rows;
+  return result;
 }
 
 // =====================
@@ -171,7 +227,9 @@ export async function getByLicenseType(type, sortBy, order) {
     `
         SELECT *
         FROM driver
-        WHERE license_type = ?
+        WHERE 
+          is_archived = FALSE AND
+          license_type = ?
         ${orderBy}
         `,
     [type],
@@ -188,7 +246,9 @@ export async function getByStatus(status, sortBy, order) {
     `
         SELECT *
         FROM driver
-        WHERE license_status = ?
+        WHERE 
+          is_archived = FALSE AND
+          license_status = ?
         ${orderBy}
         `,
     [status],
@@ -206,7 +266,9 @@ export async function getByAgeRange(min, max, sortBy, order) {
         SELECT *,
         ${AGE_EXPR} AS age
         FROM driver
-        WHERE ${AGE_EXPR}
+        WHERE 
+        is_archived = FALSE AND
+        ${AGE_EXPR}
         BETWEEN ? AND ?
         ${orderBy}
         `,
@@ -224,7 +286,9 @@ export async function getBySex(sex, sortBy, order) {
     `
         SELECT *
         FROM driver
-        WHERE sex = ?
+        WHERE 
+          is_archived = FALSE AND
+          sex = ?
         ${orderBy}
         `,
     [sex],
@@ -241,7 +305,9 @@ export async function getDriversWithBadStatus(sortBy, order) {
     `
         SELECT *
         FROM driver
-        WHERE license_status IN ('expired', 'suspended')
+        WHERE 
+          is_archived = FALSE AND
+          license_status IN ('expired', 'suspended')
         ${orderBy}
         `,
   );

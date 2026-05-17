@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 
 //import testRouter from "./routes/testRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
+import vehicleRoutes from "./routes/vehicleRoutes.js";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 // === ROUTES ===
 app.use("/api/drivers", driverRoutes);
+app.use("/api/vehicles/", vehicleRoutes);
 
 /* 
 // ============================================================

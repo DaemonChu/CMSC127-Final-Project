@@ -120,8 +120,7 @@
 
 // export default App
 
-
-// /* 
+// /*
 // ============================================================
 // NOTE: placeholder UI for testing only, remove whenever
 // ============================================================
@@ -143,21 +142,22 @@
 
 // export default App;
 
-
 /* 
 ============================================================
 NOTE: placeholder UI for testing only, remove whenever
 ============================================================
 */
 import DriverList from "./components/driverList.jsx";
+import VehicleList from "./components/vehicleList.jsx";
 
 function App() {
-    return (
-        <div>
-            <h1>LTO IMS</h1>
-            <DriverList />
-        </div>
-    );
+  return (
+    <div>
+      <h1>LTO IMS</h1>
+      <DriverList />
+      <VehicleList />
+    </div>
+  );
 }
 
 export default App;

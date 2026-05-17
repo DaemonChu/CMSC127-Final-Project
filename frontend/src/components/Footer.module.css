@@ -1,0 +1,31 @@
+.footer {
+  background: #0a1f5c;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 48px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.copy {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.link {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.link:hover {
+  color: #fff;
+}

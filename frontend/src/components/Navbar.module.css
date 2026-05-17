@@ -2,7 +2,8 @@
   display: flex;
   align-items: center;
   gap: 2rem;
-  background: #0a1f5c;
+  border-bottom: 1.5px solid #0C3291;
+  background: linear-gradient(180deg, #0E3CB0 0%, #06194A 100%);
   padding: 0 2rem;
   height: 56px;
   position: sticky;

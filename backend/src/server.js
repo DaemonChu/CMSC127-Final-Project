@@ -1,9 +1,15 @@
 import express from "express";
 import dotenv from "dotenv";
 
-//import testRouter from "./routes/testRoutes.js";
+// cron maintenance
+import "./jobs/maintenanceCron.js";
+
+// import testRouter from "./routes/testRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
+
+// optional manual maintenance all (if needed)
+import maintenanceRoutes from "./routes/maintenanceRoutes.js";
 
 dotenv.config();
 
@@ -16,6 +22,7 @@ app.use(express.json());
 // === ROUTES ===
 app.use("/api/drivers", driverRoutes);
 app.use("/api/vehicles/", vehicleRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 /* 
 // ============================================================
@@ -26,6 +33,11 @@ app.use("/api/test", testRouter);
 
 */
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
+  // run startup maintenance
+  const { runMaintenance } = await import("./service/maintenanceService.js");
+  await runMaintenance();
+  console.log("Startup maintenance completed");
 });

@@ -1,4 +1,4 @@
-/* ─── page wrapper ────────────────────────────────────────────────── */
+/* page wrapper */
 .page {
   display: flex;
   flex-direction: column;
@@ -6,7 +6,7 @@
   min-height: 0;
 }
 
-/* ─── hero section ───────────────────────────────────────────────── */
+/* hero section */
 .hero {
   padding-top: 40px;
   position: relative;
@@ -23,24 +23,24 @@
   overflow: hidden;
 }
 
-/* Background image on its own layer so opacity is independently controllable */
+/* bg image */
 .hero::before {
   content: "";
   position: absolute;
   inset: 0;
   background: url("https://www.nlc.org/wp-content/uploads/2022/01/Untitled-design-62.png")
     center / cover no-repeat;
-  opacity: 0.35; /* ← adjust this value to taste */
+  opacity: 0.35; /* opacity */
   z-index: 0;
 }
 
-/* Push all direct children above the ::before layer */
+/* push all direct children above the ::before layer */
 .hero > * {
   position: relative;
   z-index: 1;
 }
 
-/* ─── wave images ────────────────────────────────────────────────── */
+/* wave images */
 .waveTop {
   position: absolute;
   top: -38px;
@@ -63,7 +63,7 @@
   display: block;
 }
 
-/* ─── main content ───────────────────────────────────────────────── */
+/* main content */
 .content {
   position: relative;
   z-index: 1;
@@ -76,7 +76,7 @@
   margin: 0 auto;
 }
 
-/* ─── dashboard heading ──────────────────────────────────────────── */
+/* dashboard heading */
 .title {
   font-family: 'Barlow Condensed', 'Barlow', sans-serif;
   font-size: clamp(22px, 3.5vw, 34px);
@@ -87,7 +87,7 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* ─── grid ───────────────────────────────────────────────────────── */
+/* grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -101,7 +101,7 @@
 .grid > *:nth-child(4) { grid-column: 1 / 3; grid-row: 2; }
 .grid > *:nth-child(5) { grid-column: 3; grid-row: 2; }
 
-/* ─── card base ──────────────────────────────────────────────────── */
+/* card base */
 .card {
   position: relative;
   border-radius: 12px;
@@ -123,13 +123,13 @@
   box-shadow: 0 0 0 3px #4a9eff;
 }
 
-/* image card — dark navy base gives contrast under the dim photo */
+/* image card */
 .cardImage {
   min-height: 155px;
   background: #06112e;
 }
 
-/* plain card — more opaque glass so it reads clearly over the hero */
+/* plain card */
 .cardPlain {
   min-height: 155px;
   background: rgba(15, 35, 90, 0.55);
@@ -137,24 +137,22 @@
   backdrop-filter: blur(8px);
 }
 
-/* ─── card bg image ──────────────────────────────────────────────── */
+/* card bg image */
 .cardBg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* ↓ lowered from 0.55 */
   opacity: 0.30;
   transition: opacity 0.25s;
 }
 
 .card:hover .cardBg {
-  /* ↓ lowered from 0.65 */
   opacity: 0.42;
 }
 
-/* ─── card body (text + link) ────────────────────────────────────── */
+/* card body (text + link) */
 .cardBody {
   position: relative;
   z-index: 1;
@@ -197,7 +195,7 @@
   color: #fff;
 }
 
-/* ─── entrance animation ─────────────────────────────────────────── */
+/* entrance animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }

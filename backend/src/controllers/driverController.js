@@ -1,4 +1,5 @@
 import * as driverService from "../service/driverService.js";
+import { expireDrivers } from "../service/maintenanceService.js";
 
 /*
 TO DO:
@@ -103,6 +104,9 @@ export const createDriver = async (req, res) => {
   try {
     const result = await driverService.createDriver(req.body);
 
+    // run maintenance
+    await expireDrivers();
+
     res.json({
       message: "Driver created successfully",
       result,
@@ -146,6 +150,9 @@ export const updateDriver = async (req, res) => {
         message: "Driver not found",
       });
     }
+
+    // run maintenance
+    await expireDrivers();
 
     res.json({
       message: "Driver updated successfully",

@@ -1,4 +1,4 @@
-.counter {
+/* .counter {
   font-size: 16px;
   padding: 5px 10px;
   border-radius: 5px;
@@ -181,4 +181,50 @@
     right: 0;
     border-right-color: var(--border);
   }
+} */
+
+
+/* ── Google Fonts ──────────────────────────────────────────────────
+   Barlow = body text, nav links, card labels
+   Barlow Condensed = display headings (dashboard title, card titles) */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap");
+
+/* reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* base */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: "Barlow", sans-serif;
+  font-size: 14px;
+  color: #1a2340;
+  background: #0a1f5c;  /* shows briefly during paint; matches navbar */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* app shell */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f4ff;  /* page bg for inner screens */
+}
+
+/* main content area */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }

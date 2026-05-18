@@ -147,17 +147,40 @@
 NOTE: placeholder UI for testing only, remove whenever
 ============================================================
 */
-import DriverList from "./components/driverList.jsx";
-import VehicleList from "./components/vehicleList.jsx";
-
-function App() {
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+ 
+import Navbar        from "./components/Navbar.jsx";
+import Footer        from "./components/Footer";
+ 
+import Dashboard     from "./pages/Dashboard";
+import Drivers       from "./pages/Drivers";
+import Vehicles      from "./pages/Vehicles";
+import Registrations from "./pages/Registrations";
+import Violations    from "./pages/Violations";
+import Reports       from "./pages/Reports";
+ 
+import "./App.css";
+ 
+export default function App() {
   return (
-    <div>
-      <h1>LTO IMS</h1>
-      <DriverList />
-      <VehicleList />
-    </div>
+    <BrowserRouter>
+      <div className="app-shell">
+        <Navbar />
+ 
+        <main className="app-main">
+          <Routes>
+            <Route path="/"              element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard"     element={<Dashboard />} />
+            <Route path="/drivers"       element={<Drivers />} />
+            <Route path="/vehicles"      element={<Vehicles />} />
+            <Route path="/registrations" element={<Registrations />} />
+            <Route path="/violations"    element={<Violations />} />
+            <Route path="/reports"       element={<Reports />} />
+          </Routes>
+        </main>
+ 
+        <Footer />
+      </div>
+    </BrowserRouter>
   );
 }
-
-export default App;

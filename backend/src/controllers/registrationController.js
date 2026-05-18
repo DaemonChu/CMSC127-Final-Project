@@ -88,6 +88,9 @@ export const createRegistration = async (req, res) => {
   try {
     const result = await registrationService.createRegistration(req.body);
 
+    // maintenance
+    await expireRegistrations();
+
     res.status(201).json({
       message: "Registration created successfully",
       result,
@@ -138,6 +141,9 @@ export const updateRegistration = async (req, res) => {
       req.params.registration_number,
       req.body,
     );
+
+    // maintenance
+    await expireRegistrations();
 
     res.json({
       message: "Registration updated successfully",

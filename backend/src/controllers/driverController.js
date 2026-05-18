@@ -4,8 +4,6 @@ import { expireDrivers } from "../service/maintenanceService.js";
 /*
 TO DO:
 
-- renew driver
-
 [ CRUD ]
 - getAllDrivers (DONE)
 - getAllArchivedDrivers (DONE)
@@ -34,7 +32,9 @@ export const getAllDrivers = async (req, res) => {
     const data = await driverService.getAllDrivers(sortBy, order);
 
     if (!data.length) {
-      return res.status(404).json({ message: "No drivers found" });
+      return res.status(404).json({
+        message: "No drivers found",
+      });
     }
 
     res.json(data);
@@ -70,34 +70,14 @@ export const getAllArchivedDrivers = async (req, res) => {
   }
 };
 
-// --- SEARCH DRIVERS (ACTIVE / ARCHIVED) + REPORTS ---
+// --- SEARCH DRIVERS (ACTIVE / ARCHIVED) ---
 export const searchDrivers = async (req, res) => {
   try {
-    const {
-      keyword,
-      sex,
-      status,
-      type,
-      minAge,
-      maxAge,
-      sortBy,
-      order,
-      isArchived,
-    } = req.query;
+    const { keyword = "", archived = "false" } = req.query;
 
-    const result = await driverService.searchDrivers(
-      {
-        keyword,
-        sex,
-        status,
-        type,
-        minAge,
-        maxAge,
-        isArchived,
-      },
-      sortBy,
-      order,
-    );
+    const isArchived = archived === "true";
+
+    const result = await driverService.searchDrivers(keyword, isArchived);
 
     if (!result.length) {
       return res.status(404).json({
@@ -105,12 +85,15 @@ export const searchDrivers = async (req, res) => {
       });
     }
 
-    res.json(result);
+    res.json({
+      message: "Driver(s) found",
+      result,
+    });
   } catch (err) {
-    console.error("GET DRIVERS ERROR:", err);
+    console.error("SEARCH DRIVER ERROR:", err);
 
     res.status(500).json({
-      message: "Failed to fetch drivers",
+      message: "Search failed",
       error: err.message,
     });
   }
@@ -121,31 +104,24 @@ export const createDriver = async (req, res) => {
   try {
     const result = await driverService.createDriver(req.body);
 
-    // maintenance
+    // run maintenance
     await expireDrivers();
 
-    res.status(201).json({
+    res.json({
       message: "Driver created successfully",
       result,
     });
   } catch (err) {
     console.error("CREATE DRIVER ERROR:", err);
 
-    // duplicate license number
+    // ERROR: duplicate entry
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         message: "Driver already exists (duplicate license number)",
       });
     }
 
-    // invalid license number format
-    if (err.code === "INVALID_LICENSE_FORMAT") {
-      return res.status(400).json({
-        message: err.message,
-      });
-    }
-
-    // required field missing
+    // ERROR: missing required fields from MySQL
     if (err.code === "ER_BAD_NULL_ERROR") {
       return res.status(400).json({
         message: "Missing required field",
@@ -163,13 +139,19 @@ export const createDriver = async (req, res) => {
 // --- UPDATE DRIVER ---
 export const updateDriver = async (req, res) => {
   try {
-    const { license_number } = req.params;
+    const result = await driverService.updateDriver(
+      req.params.license_number,
+      req.body,
+    );
 
-    const data = req.body;
+    // ERROR: no rows affected (driver not found)
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Driver not found",
+      });
+    }
 
-    const result = await driverService.updateDriver(license_number, data);
-
-    // maintenance
+    // run maintenance
     await expireDrivers();
 
     res.json({
@@ -179,65 +161,8 @@ export const updateDriver = async (req, res) => {
   } catch (err) {
     console.error("UPDATE DRIVER ERROR:", err);
 
-    // driver not found
-    if (err.code === "DRIVER_NOT_FOUND") {
-      return res.status(404).json({
-        message: err.message,
-      });
-    }
-
-    // invalid license format
-    if (err.code === "INVALID_LICENSE_FORMAT") {
-      return res.status(400).json({
-        message: err.message,
-      });
-    }
-
-    // required field missing
-    if (err.code === "ER_BAD_NULL_ERROR") {
-      return res.status(400).json({
-        message: "Missing required field",
-        error: err.sqlMessage,
-      });
-    }
-
     res.status(500).json({
       message: "Failed to update driver",
-      error: err.message,
-    });
-  }
-};
-
-// --- RENEW DRIVER LICENSE ---
-export const renewDriver = async (req, res) => {
-  try {
-    const { license_number } = req.params;
-
-    const result = await driverService.renewDriver(license_number);
-
-    res.json({
-      message: "Driver license renewed successfully",
-      result,
-    });
-  } catch (err) {
-    console.error("RENEW DRIVER LICENSE ERROR:", err);
-
-    // renewal too early
-    if (err.code === "RENEWAL_TOO_EARLY") {
-      return res.status(400).json({
-        message: err.message,
-      });
-    }
-
-    // driver not found
-    if (err.code === "DRIVER_NOT_FOUND") {
-      return res.status(404).json({
-        message: err.message,
-      });
-    }
-
-    res.status(500).json({
-      message: "Failed to renew driver license",
       error: err.message,
     });
   }
@@ -246,22 +171,15 @@ export const renewDriver = async (req, res) => {
 // --- ARCHIVE DRIVER ---
 export const archiveDriver = async (req, res) => {
   try {
-    const { license_number } = req.params;
+    const result = await driverService.archiveDriver(req.params.license_number);
 
-    await driverService.archiveDriver(license_number);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
 
-    res.json({
-      message: "Driver archived successfully",
-    });
+    res.json({ message: "Driver archived successfully" });
   } catch (err) {
     console.error("ARCHIVE DRIVER ERROR:", err);
-
-    // driver not found
-    if (err.code === "DRIVER_NOT_FOUND") {
-      return res.status(404).json({
-        message: err.message,
-      });
-    }
 
     res.status(500).json({
       message: "Failed to archive driver",
@@ -273,22 +191,17 @@ export const archiveDriver = async (req, res) => {
 // --- UNARCHIVE DRIVER ---
 export const unarchiveDriver = async (req, res) => {
   try {
-    const { license_number } = req.params;
+    const result = await driverService.unarchiveDriver(
+      req.params.license_number,
+    );
 
-    await driverService.unarchiveDriver(license_number);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
 
-    res.json({
-      message: "Driver unarchived successfully",
-    });
+    res.json({ message: "Driver unarchived successfully" });
   } catch (err) {
     console.error("UNARCHIVE DRIVER ERROR:", err);
-
-    // driver not found
-    if (err.code === "DRIVER_NOT_FOUND") {
-      return res.status(404).json({
-        message: err.message,
-      });
-    }
 
     res.status(500).json({
       message: "Failed to unarchive driver",
@@ -301,22 +214,20 @@ export const unarchiveDriver = async (req, res) => {
 // --- DELETE DRIVER ---
 export const deleteDriver = async (req, res) => {
   try {
-    const { license_number } = req.params;
+    const result = await driverService.deleteDriver(req.params.license_number);
 
-    await driverService.deleteDriver(license_number);
+    // ERROR: driver not found
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Driver not found",
+      });
+    }
 
     res.json({
       message: "Driver permanently deleted",
     });
   } catch (err) {
     console.error("DELETE DRIVER ERROR:", err);
-
-    // driver not found
-    if (err.code === "DRIVER_NOT_FOUND") {
-      return res.status(404).json({
-        message: err.message,
-      });
-    }
 
     res.status(500).json({
       message: "Failed to delete driver",

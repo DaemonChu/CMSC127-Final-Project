@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors"; //added para gumana testing
 
 // cron maintenance
 import "./jobs/maintenanceCron.js";
@@ -7,8 +8,6 @@ import "./jobs/maintenanceCron.js";
 // import testRouter from "./routes/testRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
-import registrationRoutes from "./routes/registrationRoutes.js";
-import trafficViolationRoutes from "./routes/trafficViolationRoutes.js";
 
 // optional manual maintenance all (if needed)
 import maintenanceRoutes from "./routes/maintenanceRoutes.js";
@@ -19,14 +18,12 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());  //added para gumana testing
 app.use(express.json());
 
 // === ROUTES ===
 app.use("/api/drivers", driverRoutes);
 app.use("/api/vehicles/", vehicleRoutes);
-app.use("/api/registrations/", registrationRoutes);
-app.use("/api/violations/", trafficViolationRoutes);
-
 app.use("/api/maintenance", maintenanceRoutes);
 
 /* 

@@ -17,12 +17,11 @@ router.get("/", getAllVehicles);
 router.get("/archived", getAllArchivedVehicles);
 router.get("/search", searchVehicles);
 router.post("/", createVehicle);
-router.patch("/:MV_number", updateVehicle);
-router.patch("/archive/:MV_number", archiveVehicle);
-router.patch("/unarchive/:MV_number", unarchiveVehicle);
-router.delete("/:MV_number", deleteVehicle);
+router.patch("/:plate_number", updateVehicle);
+router.patch("/archive/:plate_number", archiveVehicle);
+router.patch("/unarchive/:plate_number", unarchiveVehicle);
+router.delete("/:plate_number", deleteVehicle);
 
-// === SEARCH + VEHICLE REPORTS ===
-router.get("/search", searchVehicles);
+// == REPORT ==
 
 export default router;

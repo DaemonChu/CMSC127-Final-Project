@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import styles from "./Dashboard.module.css";
+import styles from "../styles/Dashboard.module.css";
 import wave1 from "../assets/wave1.png";
 import wave2 from "../assets/wave2.png";
 
-/* ── card definitions ──────────────────────────────────────── */
+/* card definitions */
 const CARDS = [
   {
     id: "drivers",
@@ -43,10 +43,10 @@ export default function Dashboard() {
     <div className={styles.page}>
       <div className={styles.hero}>
 
-        {/* ── Wave Top ─────────────────────────────── */}
+        {/* wave */}
         <img src={wave1} alt="" className={styles.waveTop} aria-hidden="true" />
 
-        {/* ── Dashboard content ─────────────────── */}
+        {/* dashboard main */}
         <div className={styles.content}>
           <h1 className={styles.title}>LTO PERSONNEL DASHBOARD</h1>
           <div className={styles.grid}>
@@ -56,7 +56,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Wave Bottom ──────────────────────────── */}
+        {/* wave */}
         <img src={wave2} alt="" className={styles.waveBottom} aria-hidden="true" />
 
       </div>
@@ -64,7 +64,7 @@ export default function Dashboard() {
   );
 }
 
-/* ── individual card ──────────────────────────────────────── */
+/* indiv cards */
 function DashCard({ card, index, navigate }) {
   const hasImage = Boolean(card.image);
   return (

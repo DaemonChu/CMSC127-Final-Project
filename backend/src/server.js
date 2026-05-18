@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors"; //added para gumana testing
 
 // cron maintenance
 import "./jobs/maintenanceCron.js";
@@ -17,6 +18,7 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());  //added para gumana testing
 app.use(express.json());
 
 // === ROUTES ===

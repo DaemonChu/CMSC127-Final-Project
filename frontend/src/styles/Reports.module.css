@@ -1,0 +1,258 @@
+/* page */
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f0f4ff;
+  font-family: 'Barlow', sans-serif;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* title & category */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0a1f5c;
+  letter-spacing: 0.5px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* category tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: #dce5f7;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.tab {
+  padding: 5px 18px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a6a99;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.tabActive {
+  background: #0a1f5c;
+  color: #fff;
+}
+
+/* controls bar */
+.controlsBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #dce5f7;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.controlLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8898bb;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.controlSelect,
+.controlInput {
+  padding: 7px 11px;
+  border: 1.5px solid #c5d0eb;
+  border-radius: 7px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  color: #1a2a5c;
+  background: #f8faff;
+  outline: none;
+  min-width: 150px;
+  transition: border-color 0.15s;
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.controlSelect:focus,
+.controlInput:focus {
+  border-color: #0a1f5c;
+  background: #fff;
+}
+
+.noFilter {
+  font-size: 12px;
+  color: #aab4cc;
+  font-style: italic;
+  align-self: flex-end;
+  padding-bottom: 7px;
+}
+
+.btnRun {
+  padding: 0 22px;
+  height: 34px;
+  background: #0a1f5c;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.btnRun:hover   { background: #0d2880; }
+.btnRun:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* results area */
+.resultsArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem 1.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.errorBanner {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+/* placeholder */
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #8898bb;
+  font-size: 14px;
+  text-align: center;
+}
+
+.placeholderIcon { font-size: 38px; }
+
+/* results table */
+.resultsWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(10,31,92,0.08);
+  overflow: hidden;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 10px 14px;
+  border-bottom: 1px solid #edf0f9;
+  flex-shrink: 0;
+}
+
+.resultsCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0a1f5c;
+}
+
+.reportName {
+  font-size: 12px;
+  color: #8898bb;
+}
+
+.tableScroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead tr {
+  background: #0a1f5c;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid #edf0f9;
+  transition: background 0.1s;
+}
+
+.table tbody tr:hover { background: #f0f4ff; }
+
+.table td {
+  padding: 9px 14px;
+  color: #1a2a5c;
+  white-space: nowrap;
+}
+
+/* status badges */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  background: #dce5f7;
+  color: #3a4a7a;
+}
+
+.badgeGreen  { background: #d4f0de; color: #1a7a3c; }
+.badgeRed    { background: #fdecea; color: #c0392b; }
+.badgeYellow { background: #fff3cd; color: #856404; }

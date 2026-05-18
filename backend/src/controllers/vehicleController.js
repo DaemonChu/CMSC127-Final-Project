@@ -9,12 +9,12 @@ TO DO:
 - searchVehicle (DONE)
 - createVehicle (DONE)
 - updateVehicle (DONE)
-- removeVehicle (DONE)
+- archiveVehicle (DONE)
 - unarchiveVehicle (DONE)
 - removeVehicle (DONE)
 
 [ REPORTS ]
-
+- View all vehicles owned by a given driver.
 */
 
 // =====================
@@ -26,13 +26,15 @@ export const getAllVehicles = async (req, res) => {
   try {
     const { sortBy, order } = req.query;
 
-    const data = await vehicleService.getAllVehicles(sortBy, order);
+    const result = await vehicleService.getAllVehicles(sortBy, order);
 
-    if (!data.length) {
-      return res.status(404).json({ message: "No vehicles found" });
+    if (!result.length) {
+      return res.status(404).json({
+        message: "No vehicles found",
+      });
     }
 
-    res.json(data);
+    res.json(result);
   } catch (err) {
     console.error("GET ALL VEHICLES ERROR:", err);
 
@@ -48,13 +50,15 @@ export const getAllArchivedVehicles = async (req, res) => {
   try {
     const { sortBy, order } = req.query;
 
-    const data = await vehicleService.getAllArchivedVehicles(sortBy, order);
+    const result = await vehicleService.getAllArchivedVehicles(sortBy, order);
 
-    if (!data.length) {
-      return res.status(404).json({ message: "No archived vehicles found" });
+    if (!result.length) {
+      return res.status(404).json({
+        message: "No archived vehicles found",
+      });
     }
 
-    res.json(data);
+    res.json(result);
   } catch (err) {
     console.error("GET ALL ARCHIVED VEHICLES ERROR:", err);
 
@@ -65,28 +69,31 @@ export const getAllArchivedVehicles = async (req, res) => {
   }
 };
 
-// --- SEARCH VEHICLES (ACTIVE / ARCHIVED) ---
+// --- SEARCH VEHICLES + REPORT (driver filter) ---
 export const searchVehicles = async (req, res) => {
   try {
-    const { keyword = "", archived = "false" } = req.query;
+    const { keyword, license_number, isArchived, sortBy, order } = req.query;
 
-    const isArchived = archived === "true";
-
-    const result = await vehicleService.searchVehicles(keyword, isArchived);
+    const result = await vehicleService.searchVehicles(
+      keyword,
+      license_number,
+      isArchived,
+      sortBy,
+      order,
+    );
 
     if (!result.length) {
-      return res.status(404).json({ message: "No vehicle found" });
+      return res.status(404).json({
+        message: "No vehicles found",
+      });
     }
 
-    res.json({
-      message: "Vehicle(s) found",
-      result,
-    });
+    res.json(result);
   } catch (err) {
     console.error("SEARCH VEHICLES ERROR:", err);
 
     res.status(500).json({
-      message: "Search failed",
+      message: "Failed to fetch vehicles",
       error: err.message,
     });
   }
@@ -97,31 +104,31 @@ export const createVehicle = async (req, res) => {
   try {
     const result = await vehicleService.createVehicle(req.body);
 
-    res.json({
+    res.status(201).json({
       message: "Vehicle created successfully",
       result,
     });
   } catch (err) {
     console.error("CREATE VEHICLE ERROR:", err);
 
-    // duplicate primary key
-    if (err.code === "ER_DUP_ENTRY") {
+    // duplicate MV number
+    if (err.code === "DUPLICATE_MV_NUMBER") {
       return res.status(409).json({
-        message: "Vehicle already exists (duplicate plate number)",
+        message: err.message,
       });
     }
 
-    // foreign key fails
-    if (err.code === "ER_NO_REFERENCED_ROW_2") {
+    // invalid format
+    if (err.code === "INVALID_MV_FORMAT") {
       return res.status(400).json({
-        message: "Driver does not exist",
+        message: err.message,
       });
     }
 
-    // missing required field
-    if (err.code === "ER_BAD_NULL_ERROR") {
+    // missing fields
+    if (err.code === "MISSING_FIELDS") {
       return res.status(400).json({
-        message: "Missing required field",
+        message: err.message,
         error: err.sqlMessage,
       });
     }
@@ -137,13 +144,14 @@ export const createVehicle = async (req, res) => {
 export const updateVehicle = async (req, res) => {
   try {
     const result = await vehicleService.updateVehicle(
-      req.params.plate_number,
+      req.params.MV_number,
       req.body,
     );
 
-    // vehicle not found
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Vehicle not found" });
+      return res.status(404).json({
+        message: "Vehicle not found",
+      });
     }
 
     res.json({
@@ -152,6 +160,18 @@ export const updateVehicle = async (req, res) => {
     });
   } catch (err) {
     console.error("UPDATE VEHICLE ERROR:", err);
+
+    if (err.code === "VEHICLE_NOT_FOUND") {
+      return res.status(404).json({
+        message: err.message,
+      });
+    }
+
+    if (err.code === "INVALID_LICENSE_NUMBER") {
+      return res.status(400).json({
+        message: err.message,
+      });
+    }
 
     res.status(500).json({
       message: "Failed to update vehicle",
@@ -163,13 +183,15 @@ export const updateVehicle = async (req, res) => {
 // --- ARCHIVE VEHICLE ---
 export const archiveVehicle = async (req, res) => {
   try {
-    const result = await vehicleService.archiveVehicle(req.params.plate_number);
+    const result = await vehicleService.archiveVehicle(req.params.MV_number);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "vehicle not found" });
+      return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    res.json({ message: "Vehicle archived successfully" });
+    res.json({
+      message: "Vehicle archived successfully",
+    });
   } catch (err) {
     console.error("ARCHIVE VEHICLE ERROR:", err);
 
@@ -183,15 +205,15 @@ export const archiveVehicle = async (req, res) => {
 // --- UNARCHIVE VEHICLE ---
 export const unarchiveVehicle = async (req, res) => {
   try {
-    const result = await vehicleService.unarchiveVehicle(
-      req.params.plate_number,
-    );
+    const result = await vehicleService.unarchiveVehicle(req.params.MV_number);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    res.json({ message: "Vehicle unarchived successfully" });
+    res.json({
+      message: "Vehicle unarchived successfully",
+    });
   } catch (err) {
     console.error("UNARCHIVE VEHICLE ERROR:", err);
 
@@ -202,12 +224,11 @@ export const unarchiveVehicle = async (req, res) => {
   }
 };
 
-// --- DELETE VEHICLE ---
+// --- REMOVE VEHICLE ---
 export const deleteVehicle = async (req, res) => {
   try {
-    const result = await vehicleService.deleteVehicle(req.params.plate_number);
+    const result = await vehicleService.deleteVehicle(req.params.MV_number);
 
-    // vehicle not found
     if (result.affectedRows === 0) {
       return res.status(404).json({
         message: "Vehicle not found",
@@ -226,7 +247,3 @@ export const deleteVehicle = async (req, res) => {
     });
   }
 };
-
-// =====================
-// REPORT
-// =====================

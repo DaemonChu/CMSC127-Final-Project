@@ -11,6 +11,7 @@ Lorem ipsum, I forgot the rest. Insert a short description here.
 - express - Node.js web server and API
 - mysql2 - MySQL client for Node.js
 - dotenv - environment variable management
+- cron - time-based job scheduler used for system maintenance
 - nodemon (dev dependency) — auto-restart server during development whenever file changes are made
 
 ### Frontend

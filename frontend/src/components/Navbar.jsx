@@ -1,6 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import ltoLogo from "../assets/lto-logo.png";
-import styles from "./Navbar.module.css";
+import styles from "../styles/Navbar.module.css";
 
 const navLinks = [
   { to: "/drivers",       label: "Driver" },
@@ -11,12 +11,20 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const navigate = useNavigate();
+
   return (
     <nav className={styles.navbar}>
-      <div className={styles.brand}>
+      <div
+        className={styles.brand}
+        onClick={() => navigate("/")}
+        role="button"
+        tabIndex={0}
+        aria-label="Go to Dashboard"
+        onKeyDown={(e) => e.key === "Enter" && navigate("/")}
+      >
         <img src={ltoLogo} alt="LTO logo" className={styles.logo} />
       </div>
-
       <ul className={styles.links}>
         {navLinks.map(({ to, label }) => (
           <li key={to}>

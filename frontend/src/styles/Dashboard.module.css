@@ -11,7 +11,7 @@
   padding-top: 40px;
   position: relative;
   flex: 1;
-  /* Only the dark overlay gradient here */
+  /* dark overlay gradient here */
   background: linear-gradient(
     160deg,
     rgba(8, 20, 70, 0.72) 0%,
@@ -110,7 +110,7 @@
   outline: none;
   animation: fadeUp 0.4s both;
   transition: transform 0.2s, box-shadow 0.2s;
-  /* Subtle light border so cards pop against the dark hero bg */
+  /* light border */
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
@@ -152,7 +152,7 @@
   opacity: 0.42;
 }
 
-/* card body (text + link) */
+/* card body, text & link */
 .cardBody {
   position: relative;
   z-index: 1;

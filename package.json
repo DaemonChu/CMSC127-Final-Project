@@ -5,11 +5,13 @@
   "scripts": {
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "db": "npm run db:cli --prefix backend"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
     "mysql2": "^3.22.3",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "prompt-sync": "^4.2.0"
   }
 }

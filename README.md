@@ -13,6 +13,7 @@ Lorem ipsum, I forgot the rest. Insert a short description here.
 - dotenv - environment variable management
 - cron - time-based job scheduler used for system maintenance
 - nodemon (dev dependency) — auto-restart server during development whenever file changes are made
+- prompt-sync – synchronous command-line input (used for DB setup CLI)
 
 ### Frontend
 
@@ -120,6 +121,41 @@ http://localhost:5173
 
 ---
 
+### Database Setup (CLI Tool)
+
+This project includes a custom CLI tool to manage the database easily
+
+**Run the DB CLI**
+
+from the project folder, run:
+
+```
+npm run db
+```
+
+You will see:
+
+```
+======================
+   LTO DB CLI MENU
+======================
+[0] !!QUICK SETUP!!
+[1] Init Database
+[2] Reset Database
+[3] Seed Database
+[4] Exit
+```
+
+What each option does:
+
+- `[0] QUICK SETUP` – Runs everything (init + seed). Use for first-time setup.
+- `[1] Init Database` – Creates database and tables only (no data) (WARNING: overwrites existing data).
+- `[2] Reset Database` – Deletes database (WARNING: wipes everything).
+- `[3] Seed Database` – Inserts sample data.
+- `[4] Exit` – Closes the CLI.
+
+---
+
 ## Environment Variables
 
 The `.env` file is **not included in the repository**.
@@ -169,8 +205,8 @@ PORT=3000
   ```
 
 - Please make sure that backend and frontend are properly integrated before pushing
-- Make sure to use brances and create pull requests!
-=======
+- # Make sure to use brances and create pull requests!
+
 # LAND TRANSPORTATION OFFICE (LTO) INFORMATION MANAGEMENT SYSTEM
 
 Lorem ipsum, I forgot the rest. Insert a short description here.
@@ -341,4 +377,4 @@ PORT=3000
   ```
 
 - Please make sure that backend and frontend are properly integrated before pushing
-- Make sure to use brances and create pull requests!
+- Make sure to use branches and create pull requests!

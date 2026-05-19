@@ -13,6 +13,8 @@ import trafficViolationRoutes from "./routes/trafficViolationRoutes.js";
 // optional manual maintenance all (if needed)
 import maintenanceRoutes from "./routes/maintenanceRoutes.js";
 
+import cors from "cors";
+
 dotenv.config();
 
 const app = express();
@@ -20,6 +22,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
+app.use(cors());
 
 // === ROUTES ===
 app.use("/api/drivers", driverRoutes);

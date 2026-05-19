@@ -254,6 +254,22 @@
   color: #3a4a7a;
 }
 
+.rangeRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.rangeHalf {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.rangeSep {
+  padding-top: 8px;
+  color: #8898bb;
+  font-weight: 600;
+}
+
 .badgeGreen  { background: #d4f0de; color: #1a7a3c; }
 .badgeRed    { background: #fdecea; color: #c0392b; }
 .badgeYellow { background: #fff3cd; color: #856404; }

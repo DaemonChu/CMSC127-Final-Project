@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import styles from "../styles/Drivers.module.css";
 
@@ -16,7 +15,17 @@ const EMPTY_FORM = {
   license_number: "",
 };
 
-const VEHICLE_TYPES = ["Motorcycle", "Private Car", "Public Utility Vehicle", "Truck", "Van", "Bus", "Other"];
+// lowercase to match
+const VEHICLE_TYPES = [
+  "motorcycle",
+  "private car",
+  "public utility vehicle",
+  "truck",
+  "suv",
+  "van",
+  "bus",
+  "other",
+];
 
 const SORT_OPTIONS = [
   { value: "plate_number", label: "Plate #" },
@@ -38,13 +47,12 @@ export default function Vehicles() {
   const [formSuccess, setFormSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  //filter, search, sort state
-  const [search, setSearch]               = useState("");
-  const [filterType, setFilterType]       = useState("");
-  const [sortBy, setSortBy]               = useState("");
-  const [order, setOrder]                 = useState("asc");
+  const [search, setSearch]         = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [sortBy, setSortBy]         = useState("");
+  const [order, setOrder]           = useState("asc");
 
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // stores { MV_number, plate_number }
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -52,16 +60,15 @@ export default function Vehicles() {
     try {
       const isArchived = tab === "archived";
       const params = new URLSearchParams();
+      params.set("isArchived", String(isArchived));
       if (sortBy) { params.set("sortBy", sortBy); params.set("order", order); }
 
       let url;
-      if (search.trim()) {
-        params.set("keyword", search.trim());
-        params.set("archived", String(isArchived));
+      if (search.trim() || filterType) {
+        if (search.trim()) params.set("keyword", search.trim());
+        if (filterType)    params.set("vehicleType", filterType);
         url = `${API}/search?${params}`;
       } else {
-        //vehicle type filter can be appended to base list
-        if (filterType) params.set("type", filterType);
         url = isArchived ? `${API}/archived?${params}` : `${API}?${params}`;
       }
 
@@ -69,12 +76,7 @@ export default function Vehicles() {
       if (res.status === 404) { setVehicles([]); return; }
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
-      let list = Array.isArray(data) ? data : data.result ?? [];
-
-      //client-side type filter fallback
-     if (filterType) list = list.filter((v) => v.vehicle_type?.toLowerCase() === filterType.toLowerCase());
-
-      setVehicles(list);
+      setVehicles(Array.isArray(data) ? data : data.result ?? []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -85,8 +87,11 @@ export default function Vehicles() {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   useEffect(() => {
-    setSelected(null); setMode("view");
-    setForm(EMPTY_FORM); setFormError(""); setFormSuccess("");
+    setSelected(null);
+    setMode("view");
+    setForm(EMPTY_FORM);
+    setFormError("");
+    setFormSuccess("");
   }, [tab]);
 
   const clearFilters = () => {
@@ -102,20 +107,20 @@ export default function Vehicles() {
   const openEdit = (v) => {
     setSelected(v);
     setForm({
-      plate_number: v.plate_number,
-      vehicle_type: v.vehicle_type,
-      engine_number: v.engine_number,
+      plate_number:   v.plate_number,
+      vehicle_type:   v.vehicle_type,
+      engine_number:  v.engine_number,
       chassis_number: v.chassis_number,
-      year: v.year?.toString() ?? "",
-      make: v.make,
-      model: v.model,
-      color: v.color,
+      year:           v.year?.toString() ?? "",
+      make:           v.make,
+      model:          v.model,
+      color:          v.color,
       license_number: v.license_number,
     });
     setMode("edit"); setFormError(""); setFormSuccess("");
   };
 
-  const openView = (v) => { setSelected(v); setMode("view"); setFormError(""); setFormSuccess(""); };
+  const openView  = (v) => { setSelected(v); setMode("view"); setFormError(""); setFormSuccess(""); };
   const closePanel = () => { setSelected(null); setMode("view"); setForm(EMPTY_FORM); setFormError(""); setFormSuccess(""); };
   const handleField = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -130,7 +135,7 @@ export default function Vehicles() {
           body: JSON.stringify(form),
         });
       } else {
-        res = await fetch(`${API}/${selected.plate_number}`, {
+        res = await fetch(`${API}/${selected.MV_number}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
@@ -148,20 +153,20 @@ export default function Vehicles() {
     }
   };
 
-  const handleArchive = async (plate_number) => {
+  const handleArchive = async (MV_number) => {
     try {
       const endpoint = tab === "active"
-        ? `${API}/archive/${plate_number}`
-        : `${API}/unarchive/${plate_number}`;
+        ? `${API}/archive/${MV_number}`
+        : `${API}/unarchive/${MV_number}`;
       const res = await fetch(endpoint, { method: "PATCH" });
       if (!res.ok) throw new Error("Failed");
       fetchVehicles(); closePanel();
     } catch (e) { setFormError(e.message); }
   };
 
-  const handleDelete = async (plate_number) => {
+  const handleDelete = async (MV_number) => {
     try {
-      const res = await fetch(`${API}/${plate_number}`, { method: "DELETE" });
+      const res = await fetch(`${API}/${MV_number}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       setDeleteConfirm(null); fetchVehicles(); closePanel();
     } catch (e) { setFormError(e.message); }
@@ -175,13 +180,20 @@ export default function Vehicles() {
         <div className={styles.headerLeft}>
           <h1 className={styles.pageTitle}>Vehicle Management</h1>
           <div className={styles.tabs}>
-            <button className={`${styles.tab} ${tab === "active" ? styles.tabActive : ""}`} onClick={() => setTab("active")}>Active</button>
+            <button className={`${styles.tab} ${tab === "active"   ? styles.tabActive : ""}`} onClick={() => setTab("active")}>Active</button>
             <button className={`${styles.tab} ${tab === "archived" ? styles.tabActive : ""}`} onClick={() => setTab("archived")}>Archived</button>
           </div>
         </div>
         <div className={styles.headerRight}>
-          <input className={styles.search} placeholder="Search by plate, make, model…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          {tab === "active" && <button className={styles.btnAdd} onClick={openAdd}>+ Add Vehicle</button>}
+          <input
+            className={styles.search}
+            placeholder="Search by plate, make, model…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {tab === "active" && (
+            <button className={styles.btnAdd} onClick={openAdd}>+ Add Vehicle</button>
+          )}
         </div>
       </div>
 
@@ -193,9 +205,12 @@ export default function Vehicles() {
             className={styles.filterSelect}
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
+            style={{ textTransform: "capitalize" }}
           >
             <option value="">All Types</option>
-            {VEHICLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            {VEHICLE_TYPES.map((t) => (
+              <option key={t} value={t} style={{ textTransform: "capitalize" }}>{t}</option>
+            ))}
           </select>
         </div>
         <div className={styles.filterGroup}>
@@ -209,7 +224,7 @@ export default function Vehicles() {
           <div className={styles.filterGroup}>
             <label className={styles.filterLabel}>Order</label>
             <div className={styles.orderToggle}>
-              <button className={`${styles.orderBtn} ${order === "asc" ? styles.orderActive : ""}`} onClick={() => setOrder("asc")}>↑ Asc</button>
+              <button className={`${styles.orderBtn} ${order === "asc"  ? styles.orderActive : ""}`} onClick={() => setOrder("asc")}>↑ Asc</button>
               <button className={`${styles.orderBtn} ${order === "desc" ? styles.orderActive : ""}`} onClick={() => setOrder("desc")}>↓ Desc</button>
             </div>
           </div>
@@ -241,12 +256,12 @@ export default function Vehicles() {
               <tbody>
                 {vehicles.map((v) => (
                   <tr
-                    key={v.plate_number}
-                    className={selected?.plate_number === v.plate_number ? styles.rowSelected : ""}
+                    key={v.MV_number}
+                    className={selected?.MV_number === v.MV_number ? styles.rowSelected : ""}
                     onClick={() => openView(v)}
                   >
                     <td className={`${styles.nameCell} ${styles.mono}`}>{v.plate_number}</td>
-                    <td>{v.vehicle_type}</td>
+                    <td style={{ textTransform: "capitalize" }}>{v.vehicle_type}</td>
                     <td>{v.make} {v.model}</td>
                     <td>{v.year}</td>
                     <td>{v.color}</td>
@@ -270,46 +285,56 @@ export default function Vehicles() {
             <div className={styles.panelBody}>
               {mode === "view" && selected && (
                 <>
-                  <DetailRow label="Plate Number" value={selected.plate_number} mono />
-                  <DetailRow label="Vehicle Type" value={selected.vehicle_type} />
-                  <DetailRow label="Engine Number" value={selected.engine_number} mono />
-                  <DetailRow label="Chassis Number" value={selected.chassis_number} mono />
-                  <DetailRow label="Year" value={selected.year} />
-                  <DetailRow label="Make" value={selected.make} />
-                  <DetailRow label="Model" value={selected.model} />
-                  <DetailRow label="Color" value={selected.color} />
+                  <DetailRow label="MV Number"      value={selected.MV_number}      mono />
+                  <DetailRow label="Plate Number"    value={selected.plate_number}   mono />
+                  <DetailRow label="Vehicle Type"    value={selected.vehicle_type}   capitalize />
+                  <DetailRow label="Engine Number"   value={selected.engine_number}  mono />
+                  <DetailRow label="Chassis Number"  value={selected.chassis_number} mono />
+                  <DetailRow label="Year"            value={selected.year} />
+                  <DetailRow label="Make"            value={selected.make} />
+                  <DetailRow label="Model"           value={selected.model} />
+                  <DetailRow label="Color"           value={selected.color} />
                   <DetailRow label="Owner License #" value={selected.license_number} mono />
 
                   <div className={styles.panelActions}>
-                    {tab === "active" && <button className={styles.btnEdit} onClick={() => openEdit(selected)}>Edit</button>}
-                    <button className={styles.btnArchive} onClick={() => handleArchive(selected.plate_number)}>
+                    {tab === "active" && (
+                      <button className={styles.btnEdit} onClick={() => openEdit(selected)}>Edit</button>
+                    )}
+                    <button className={styles.btnArchive} onClick={() => handleArchive(selected.MV_number)}>
                       {tab === "active" ? "Archive" : "Unarchive"}
                     </button>
-                    <button className={styles.btnDelete} onClick={() => setDeleteConfirm(selected.plate_number)}>Delete</button>
+                    <button
+                      className={styles.btnDelete}
+                      onClick={() => setDeleteConfirm({ MV_number: selected.MV_number, plate_number: selected.plate_number })}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </>
               )}
 
               {(mode === "add" || mode === "edit") && (
                 <>
-                  <FormField label="Plate Number" name="plate_number" value={form.plate_number} onChange={handleField} disabled={mode === "edit"} />
-                  <FormSelect label="Vehicle Type" name="vehicle_type" value={form.vehicle_type} onChange={handleField} options={VEHICLE_TYPES} />
-                  <FormField label="Engine Number" name="engine_number" value={form.engine_number} onChange={handleField} />
-                  <FormField label="Chassis Number" name="chassis_number" value={form.chassis_number} onChange={handleField} />
-                  <FormField label="Year" name="year" type="number" value={form.year} onChange={handleField} />
-                  <FormField label="Make" name="make" value={form.make} onChange={handleField} />
-                  <FormField label="Model" name="model" value={form.model} onChange={handleField} />
-                  <FormField label="Color" name="color" value={form.color} onChange={handleField} />
-                  <FormField label="Owner License #" name="license_number" value={form.license_number} onChange={handleField} />
+                  <FormField  label="Plate Number"   name="plate_number"   value={form.plate_number}   onChange={handleField} disabled={mode === "edit"} />
+                  <FormSelect label="Vehicle Type"   name="vehicle_type"   value={form.vehicle_type}   onChange={handleField} options={VEHICLE_TYPES} />
+                  <FormField  label="Engine Number"  name="engine_number"  value={form.engine_number}  onChange={handleField} />
+                  <FormField  label="Chassis Number" name="chassis_number" value={form.chassis_number} onChange={handleField} />
+                  <FormField  label="Year"           name="year"           value={form.year}           onChange={handleField} type="number" />
+                  <FormField  label="Make"           name="make"           value={form.make}           onChange={handleField} />
+                  <FormField  label="Model"          name="model"          value={form.model}          onChange={handleField} />
+                  <FormField  label="Color"          name="color"          value={form.color}          onChange={handleField} />
+                  <FormField  label="Owner License #" name="license_number" value={form.license_number} onChange={handleField} />
 
-                  {formError && <p className={styles.formError}>{formError}</p>}
+                  {formError   && <p className={styles.formError}>{formError}</p>}
                   {formSuccess && <p className={styles.formSuccess}>{formSuccess}</p>}
 
                   <div className={styles.panelActions}>
                     <button className={styles.btnSave} onClick={handleSubmit} disabled={submitting}>
                       {submitting ? "Saving…" : "Save"}
                     </button>
-                    <button className={styles.btnCancel} onClick={mode === "edit" ? () => openView(selected) : closePanel}>Cancel</button>
+                    <button className={styles.btnCancel} onClick={mode === "edit" ? () => openView(selected) : closePanel}>
+                      Cancel
+                    </button>
                   </div>
                 </>
               )}
@@ -318,15 +343,19 @@ export default function Vehicles() {
         )}
       </div>
 
+      {/* delete confirmation modal */}
       {deleteConfirm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>Permanently Delete Vehicle?</h3>
             <p className={styles.modalBody}>
-              This will permanently remove <strong>{deleteConfirm}</strong> and all its associated violations and registrations. This cannot be undone.
+              This will permanently remove <strong>{deleteConfirm.plate_number}</strong> and all
+              its associated violations and registrations. This cannot be undone.
             </p>
             <div className={styles.modalActions}>
-              <button className={styles.btnDelete} onClick={() => handleDelete(deleteConfirm)}>Yes, Delete Permanently</button>
+              <button className={styles.btnDelete} onClick={() => handleDelete(deleteConfirm.MV_number)}>
+                Yes, Delete Permanently
+              </button>
               <button className={styles.btnCancel} onClick={() => setDeleteConfirm(null)}>Cancel</button>
             </div>
           </div>
@@ -336,11 +365,16 @@ export default function Vehicles() {
   );
 }
 
-function DetailRow({ label, value, mono }) {
+function DetailRow({ label, value, mono, capitalize }) {
   return (
     <div className={styles.detailRow}>
       <span className={styles.detailLabel}>{label}</span>
-      <span className={`${styles.detailValue} ${mono ? styles.mono : ""}`}>{value ?? "—"}</span>
+      <span
+        className={`${styles.detailValue} ${mono ? styles.mono : ""}`}
+        style={capitalize ? { textTransform: "capitalize" } : undefined}
+      >
+        {value ?? "—"}
+      </span>
     </div>
   );
 }
@@ -349,7 +383,14 @@ function FormField({ label, name, value, onChange, type = "text", disabled = fal
   return (
     <div className={styles.formGroup}>
       <label className={styles.formLabel}>{label}</label>
-      <input className={styles.formInput} type={type} name={name} value={value} onChange={onChange} disabled={disabled} />
+      <input
+        className={styles.formInput}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+      />
     </div>
   );
 }
@@ -358,9 +399,17 @@ function FormSelect({ label, name, value, onChange, options }) {
   return (
     <div className={styles.formGroup}>
       <label className={styles.formLabel}>{label}</label>
-      <select className={styles.formSelect} name={name} value={value} onChange={onChange}>
+      <select
+        className={styles.formSelect}
+        name={name}
+        value={value}
+        onChange={onChange}
+        style={{ textTransform: "capitalize" }}
+      >
         <option value="">— Select —</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => (
+          <option key={o} value={o} style={{ textTransform: "capitalize" }}>{o}</option>
+        ))}
       </select>
     </div>
   );

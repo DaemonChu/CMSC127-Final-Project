@@ -16,10 +16,12 @@ const router = express.Router();
 router.get("/", getAllVehicles);
 router.get("/archived", getAllArchivedVehicles);
 router.get("/search", searchVehicles);
+router.get("/", getAllVehicles);
 router.post("/", createVehicle);
 router.patch("/:MV_number", updateVehicle);
 router.patch("/archive/:MV_number", archiveVehicle);
 router.patch("/unarchive/:MV_number", unarchiveVehicle);
+router.patch("/:MV_number", updateVehicle);
 router.delete("/:MV_number", deleteVehicle);
 
 // === SEARCH + VEHICLE REPORTS ===

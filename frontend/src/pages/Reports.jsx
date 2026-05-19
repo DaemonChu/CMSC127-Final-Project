@@ -3,15 +3,16 @@ import styles from "../styles/Reports.module.css";
 
 const API = "http://localhost:3000/api";
 
-//constants
+// ─── Constants ───────────────────────────────────────────────
 const LICENSE_TYPES    = ["Student Permit", "Non-Professional", "Professional"];
 const LICENSE_STATUSES = ["valid", "expired", "suspended", "revoked"];
 const SEX_OPTIONS      = ["Male", "Female"];
 
-//tab definitions
+// ─── Tab definitions ─────────────────────────────────────────
 const TABS = ["Drivers", "Vehicles", "Registrations", "Violations"];
 
-//report configs per tab
+// ─── Report configs per tab ──────────────────────────────────
+// buildUrl must exactly match the route paths defined in the route files
 const REPORT_CONFIGS = {
   Drivers: [
     {
@@ -53,6 +54,7 @@ const REPORT_CONFIGS = {
       id: "by-driver",
       label: "Vehicles by Driver",
       filters: [{ key: "license_number", label: "License #", type: "text" }],
+      // Routes to /vehicles/reports/by-driver which maps to searchVehicles
       buildUrl: (p) => `${API}/vehicles/reports/by-driver?license_number=${enc(p.license_number)}`,
     },
   ],
@@ -61,6 +63,7 @@ const REPORT_CONFIGS = {
       id: "expired",
       label: "Expired Registrations",
       filters: [{ key: "as_of", label: "As of Date", type: "date" }],
+      // Routes to /registrations/reports/expired which maps ?as_of → expired=true&date=
       buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${p.as_of ?? ""}`,
     },
   ],
@@ -84,7 +87,7 @@ const REPORT_CONFIGS = {
     },
     {
       id: "vehicles-by-city",
-      label: "Vehicles in Violations by City",
+      label: "Vehicles in Violations by City / Region",
       filters: [{ key: "city", label: "City / Region", type: "text" }],
       buildUrl: (p) => `${API}/violations/reports/vehicles-by-city?city=${enc(p.city)}`,
     },
@@ -93,19 +96,20 @@ const REPORT_CONFIGS = {
 
 const enc = (v) => encodeURIComponent(v ?? "");
 
-//cell formatters
+// ─── Cell formatters ─────────────────────────────────────────
 const STATUS_COLS = new Set([
   "license_status", "registration_status", "violation_status",
 ]);
 const DATE_COLS = new Set([
   "date_of_birth", "license_issuance_date", "license_expiration_date",
-  "registration_date", "expiration_date", "violation_date",
+  "registration_date", "expiration_date", "date", "violation_date",
 ]);
 
 function formatCell(col, val) {
   if (val == null) return "—";
   if (DATE_COLS.has(col) && typeof val === "string") return val.slice(0, 10);
   if (col === "fine_amount") return `₱${Number(val).toLocaleString()}`;
+  if (col === "total_violations") return Number(val).toLocaleString();
   return val.toString();
 }
 
@@ -118,7 +122,7 @@ function getBadgeClass(val, s) {
   return "";
 }
 
-//component
+// ─── Component ───────────────────────────────────────────────
 export default function Reports() {
   const [tab, setTab]           = useState("Drivers");
   const [reportId, setReportId] = useState(REPORT_CONFIGS["Drivers"][0].id);
@@ -185,9 +189,9 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* report picker, filter dropdowns, run */}
+      {/* report picker, filter inputs, run button */}
       <div className={styles.controlsBar}>
-        {/* report type */}
+        {/* report type selector */}
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Report Type</label>
           <select
@@ -201,7 +205,7 @@ export default function Reports() {
           </select>
         </div>
 
-        {/* dynamic filters */}
+        {/* dynamic filter inputs */}
         {currentReport.filters.map((f) => (
           <div key={f.key} className={styles.controlGroup}>
             <label className={styles.controlLabel}>{f.label}</label>
@@ -223,6 +227,7 @@ export default function Reports() {
                 value={params[f.key] ?? ""}
                 onChange={(e) => setParam(f.key, e.target.value)}
                 placeholder={f.label}
+                min={f.type === "number" ? 0 : undefined}
               />
             )}
           </div>
@@ -241,7 +246,7 @@ export default function Reports() {
         </button>
       </div>
 
-      {/* results */}
+      {/* results area */}
       <div className={styles.resultsArea}>
         {error && <div className={styles.errorBanner}>{error}</div>}
 

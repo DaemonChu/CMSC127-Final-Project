@@ -459,3 +459,57 @@ export async function deleteDriver(license_number) {
 
   return result;
 }
+
+export async function getByLicenseType(type, sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+  const [rows] = await db.query(
+    `SELECT * FROM driver WHERE is_archived = FALSE AND license_type = ? ${orderBy}`,
+    [type]
+  );
+  return rows;
+}
+ 
+// --- GET DRIVERS BY LICENSE STATUS ---
+export async function getByStatus(status, sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+  const [rows] = await db.query(
+    `SELECT * FROM driver WHERE is_archived = FALSE AND license_status = ? ${orderBy}`,
+    [status]
+  );
+  return rows;
+}
+ 
+// --- GET DRIVERS BY AGE RANGE ---
+export async function getByAgeRange(min, max, sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+  const [rows] = await db.query(
+    `SELECT * FROM driver
+     WHERE is_archived = FALSE
+       AND ${AGE_EXPR} BETWEEN ? AND ?
+     ${orderBy}`,
+    [Number(min), Number(max)]
+  );
+  return rows;
+}
+ 
+// --- GET DRIVERS BY SEX ---
+export async function getBySex(sex, sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+  const [rows] = await db.query(
+    `SELECT * FROM driver WHERE is_archived = FALSE AND sex = ? ${orderBy}`,
+    [sex]
+  );
+  return rows;
+}
+ 
+// --- GET DRIVERS WITH EXPIRED OR SUSPENDED LICENSES ---
+export async function getDriversWithBadStatus(sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
+  const [rows] = await db.query(
+    `SELECT * FROM driver
+     WHERE is_archived = FALSE
+       AND license_status IN ('expired', 'suspended')
+     ${orderBy}`
+  );
+  return rows;
+}

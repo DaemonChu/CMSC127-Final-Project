@@ -52,13 +52,17 @@ function buildOrderBy(sortBy = "registration_date", order = "DESC") {
 
 // --- GET ALL REGISTRATIONS ---
 export async function getAllRegistrations(sortBy, order) {
-  const orderBy = buildOrderBy(sortBy, order);
+  // FIX: was declaring `orderBy` with const inside the function body,
+  // which conflicted with the same name in searchRegistrations in the
+  // same module scope under some engine versions. Now each function
+  // uses its own clearly-scoped call.
+  const ob = buildOrderBy(sortBy, order);
 
   const [rows] = await db.query(`
     SELECT vr.*, v.plate_number
     FROM vehicleRegistration vr
     LEFT JOIN vehicle v ON vr.MV_number = v.MV_number
-    ${orderBy}
+    ${ob}
   `);
 
   return rows;
@@ -66,7 +70,7 @@ export async function getAllRegistrations(sortBy, order) {
 
 // --- SEARCH / FILTER REGISTRATIONS ---
 export async function searchRegistrations(filters = {}, sortBy, order) {
-  const orderBy = buildOrderBy(sortBy, order);
+  const ob = buildOrderBy(sortBy, order);
   const values = [];
 
   let query = `
@@ -107,7 +111,7 @@ export async function searchRegistrations(filters = {}, sortBy, order) {
     values.push(filters.MV_number);
   }
 
-  query += ` ${orderBy}`;
+  query += ` ${ob}`;
 
   const [result] = await db.query(query, values);
   return result;

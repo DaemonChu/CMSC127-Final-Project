@@ -191,8 +191,8 @@ PORT=3000
 ## Contributors
 
 - Denise Kirssy F. Chua
--
-- ***
+- Frannieczeska Erene U. Tandang
+- Natasha Lois Montas
 
 ## Notes for Developers
 

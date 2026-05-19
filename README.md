@@ -1,6 +1,6 @@
 # LAND TRANSPORTATION OFFICE (LTO) INFORMATION MANAGEMENT SYSTEM
 
-Lorem ipsum, I forgot the rest. Insert a short description here.
+A centralized information management system designed to simulate the core operations of the Philippine Land Transportation Office (LTO). The system allows LTO personnel to efficiently manage driver records, motor vehicle information, vehicle registrations, and traffic violations while ensuring data integrity, a relational database design, and SQL-based reporting. Built as a final project for CMSC 127 – File Processing and Database Systems at the University of the Philippines Los Baños (UPLB).
 
 ---
 

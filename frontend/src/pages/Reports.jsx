@@ -7,44 +7,78 @@ const API = "http://localhost:3000/api";
 const LICENSE_TYPES    = ["Student Permit", "Non-Professional", "Professional"];
 const LICENSE_STATUSES = ["valid", "expired", "suspended", "revoked"];
 const SEX_OPTIONS      = ["Male", "Female"];
+const VEHICLE_TYPES    = ["Motorcycle", "Private Car", "Public Utility Vehicle", "Truck", "Bus"];
+
+// today's date as YYYY-MM-DD — used as default for "as of date" in registrations report
+const TODAY = new Date().toISOString().slice(0, 10);
 
 // ─── Tab definitions ─────────────────────────────────────────
 const TABS = ["Drivers", "Vehicles", "Registrations", "Violations"];
 
 // ─── Report configs per tab ──────────────────────────────────
-// buildUrl must exactly match the route paths defined in the route files
+// Filter types:
+//   "select"   → dropdown
+//   "text"     → free text input
+//   "number"   → number input
+//   "date"     → date picker
+//   "range"    → two inputs rendered inline as "From — To" or "Min — Max"
+//               uses keyFrom / keyTo for the two param keys
+//               subType: "number" | "date" controls input type of each half
+//               required: true blocks submit if either half is blank
 const REPORT_CONFIGS = {
   Drivers: [
     {
       id: "by-license-type",
       label: "By License Type",
-      filters: [{ key: "type", label: "License Type", type: "select", options: LICENSE_TYPES }],
+      filters: [
+        // required — backend returns 400 if type is missing
+        { key: "type", label: "License Type", type: "select", options: LICENSE_TYPES, required: true },
+      ],
       buildUrl: (p) => `${API}/drivers/reports/license-type?type=${enc(p.type)}`,
     },
     {
       id: "by-status",
       label: "By License Status",
-      filters: [{ key: "status", label: "License Status", type: "select", options: LICENSE_STATUSES }],
+      filters: [
+        // required — backend returns 400 if status is missing
+        { key: "status", label: "License Status", type: "select", options: LICENSE_STATUSES, required: true },
+      ],
       buildUrl: (p) => `${API}/drivers/reports/status?status=${enc(p.status)}`,
     },
     {
       id: "by-age-range",
       label: "By Age Range",
       filters: [
-        { key: "min", label: "Min Age", type: "number" },
-        { key: "max", label: "Max Age", type: "number" },
+        // single range control — both halves required; validated min <= max before submit
+        {
+          key: "ageRange",
+          label: "Age Range",
+          type: "range",
+          subType: "number",
+          keyFrom: "min",
+          keyTo: "max",
+          placeholderFrom: "Min age",
+          placeholderTo: "Max age",
+          min: 0,
+          max: 120,
+          required: true,
+        },
       ],
       buildUrl: (p) => `${API}/drivers/reports/age-range?min=${p.min ?? ""}&max=${p.max ?? ""}`,
     },
     {
       id: "by-sex",
       label: "By Sex",
-      filters: [{ key: "sex", label: "Sex", type: "select", options: SEX_OPTIONS }],
+      filters: [
+        // required — backend returns 400 if sex is missing
+        { key: "sex", label: "Sex", type: "select", options: SEX_OPTIONS, required: true },
+      ],
       buildUrl: (p) => `${API}/drivers/reports/sex?sex=${enc(p.sex)}`,
     },
     {
       id: "bad-status",
       label: "Expired / Suspended Licenses",
+      // spec: "View all drivers with expired or suspended licenses" — no filter needed
       filters: [],
       buildUrl: () => `${API}/drivers/reports/bad-status`,
     },
@@ -53,43 +87,70 @@ const REPORT_CONFIGS = {
     {
       id: "by-driver",
       label: "Vehicles by Driver",
-      filters: [{ key: "license_number", label: "License #", type: "text" }],
-      // Routes to /vehicles/reports/by-driver which maps to searchVehicles
-      buildUrl: (p) => `${API}/vehicles/reports/by-driver?license_number=${enc(p.license_number)}`,
+      filters: [
+        // required — spec: "all vehicles owned by a given driver"
+        { key: "license_number", label: "License #", type: "text", required: true },
+        // optional — backend supports ?vehicleType= for narrowing
+        { key: "vehicleType", label: "Vehicle Type (optional)", type: "select", options: VEHICLE_TYPES },
+      ],
+      buildUrl: (p) =>
+        `${API}/vehicles/reports/by-driver?license_number=${enc(p.license_number)}&vehicleType=${enc(p.vehicleType)}`,
     },
   ],
   Registrations: [
     {
       id: "expired",
-      label: "Expired Registrations",
-      filters: [{ key: "as_of", label: "As of Date", type: "date" }],
-      // Routes to /registrations/reports/expired which maps ?as_of → expired=true&date=
-      buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${p.as_of ?? ""}`,
+      label: "Expired Registrations as of Date",
+      filters: [
+        // required — spec: "as of a given date"; defaults to today
+        { key: "as_of", label: "As of Date", type: "date", required: true, defaultValue: TODAY },
+      ],
+      buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${p.as_of || TODAY}`,
     },
   ],
   Violations: [
     {
       id: "by-driver",
-      label: "By Driver & Date Range",
+      label: "Violations by Driver & Date Range",
       filters: [
-        { key: "license_number", label: "License #", type: "text" },
-        { key: "from", label: "From", type: "date" },
-        { key: "to", label: "To", type: "date" },
+        // required — spec: "given driver"
+        { key: "license_number", label: "License #", type: "text", required: true },
+        // optional date range — spec: "within a specified date range"
+        // rendered as a single paired From — To control; omitting returns all violations for driver
+        {
+          key: "dateRange",
+          label: "Date Range (optional)",
+          type: "range",
+          subType: "date",
+          keyFrom: "from",
+          keyTo: "to",
+          placeholderFrom: "From",
+          placeholderTo: "To",
+          required: false,
+        },
       ],
       buildUrl: (p) =>
         `${API}/violations/reports/by-driver?license_number=${enc(p.license_number)}&from=${p.from ?? ""}&to=${p.to ?? ""}`,
     },
     {
       id: "by-type-year",
-      label: "Count by Type (Year)",
-      filters: [{ key: "year", label: "Year", type: "number" }],
+      label: "Total Violations by Type (Year)",
+      filters: [
+        // required — backend returns 400 if year is missing
+        { key: "year", label: "Year", type: "number", required: true, min: 2000, max: 2100 },
+      ],
       buildUrl: (p) => `${API}/violations/reports/by-type?year=${p.year ?? ""}`,
     },
     {
       id: "vehicles-by-city",
       label: "Vehicles in Violations by City / Region",
-      filters: [{ key: "city", label: "City / Region", type: "text" }],
-      buildUrl: (p) => `${API}/violations/reports/vehicles-by-city?city=${enc(p.city)}`,
+      filters: [
+        // spec: "given city or region" — backend accepts both as separate params
+        { key: "city",   label: "City (optional)",   type: "text" },
+        { key: "region", label: "Region (optional)", type: "text" },
+      ],
+      buildUrl: (p) =>
+        `${API}/violations/reports/vehicles-by-city?city=${enc(p.city)}&region=${enc(p.region)}`,
     },
   ],
 };
@@ -108,7 +169,7 @@ const DATE_COLS = new Set([
 function formatCell(col, val) {
   if (val == null) return "—";
   if (DATE_COLS.has(col) && typeof val === "string") return val.slice(0, 10);
-  if (col === "fine_amount") return `₱${Number(val).toLocaleString()}`;
+  if (col === "fine_amount")      return `₱${Number(val).toLocaleString()}`;
   if (col === "total_violations") return Number(val).toLocaleString();
   return val.toString();
 }
@@ -124,13 +185,14 @@ function getBadgeClass(val, s) {
 
 // ─── Component ───────────────────────────────────────────────
 export default function Reports() {
-  const [tab, setTab]           = useState("Drivers");
-  const [reportId, setReportId] = useState(REPORT_CONFIGS["Drivers"][0].id);
-  const [params, setParams]     = useState({});
-  const [results, setResults]   = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [ran, setRan]           = useState(false);
+  const [tab, setTab]                 = useState("Drivers");
+  const [reportId, setReportId]       = useState(REPORT_CONFIGS["Drivers"][0].id);
+  const [params, setParams]           = useState({});
+  const [results, setResults]         = useState([]);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState("");
+  const [ran, setRan]                 = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const currentReports = REPORT_CONFIGS[tab];
   const currentReport  = currentReports.find((r) => r.id === reportId) ?? currentReports[0];
@@ -138,17 +200,57 @@ export default function Reports() {
   const switchTab = (t) => {
     setTab(t);
     setReportId(REPORT_CONFIGS[t][0].id);
-    setParams({}); setResults([]); setRan(false); setError("");
+    setParams({}); setResults([]); setRan(false); setError(""); setFieldErrors({});
   };
 
   const switchReport = (id) => {
     setReportId(id);
-    setParams({}); setResults([]); setRan(false); setError("");
+    setParams({}); setResults([]); setRan(false); setError(""); setFieldErrors({});
   };
 
   const setParam = (k, v) => setParams((p) => ({ ...p, [k]: v }));
 
+  const getParamValue = (key, defaultValue) => {
+    if (params[key] !== undefined) return params[key];
+    return defaultValue ?? "";
+  };
+
   const runReport = useCallback(async () => {
+    const errors = {};
+
+    for (const f of currentReport.filters) {
+      if (f.type === "range") {
+        const fromVal = params[f.keyFrom] ?? "";
+        const toVal   = params[f.keyTo]   ?? "";
+
+        if (f.required) {
+          if (!fromVal) errors[`${f.key}_from`] = `${f.placeholderFrom} is required`;
+          if (!toVal)   errors[`${f.key}_to`]   = `${f.placeholderTo} is required`;
+        }
+
+        // cross-field validation: from must not exceed to
+        if (fromVal && toVal) {
+          if (f.subType === "number" && Number(fromVal) > Number(toVal)) {
+            errors[`${f.key}_from`] = "Min cannot be greater than Max";
+          }
+          if (f.subType === "date" && fromVal > toVal) {
+            errors[`${f.key}_from`] = "Start date cannot be after end date";
+          }
+        }
+      } else {
+        const val = params[f.key] ?? f.defaultValue ?? "";
+        if (f.required && !val) {
+          errors[f.key] = `${f.label} is required`;
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+
     setLoading(true); setError(""); setResults([]); setRan(false);
     try {
       const url = currentReport.buildUrl(params);
@@ -169,6 +271,90 @@ export default function Reports() {
   }, [currentReport, params]);
 
   const columns = results.length > 0 ? Object.keys(results[0]) : [];
+
+  // ─── Range filter renderer ────────────────────────────────
+  const renderRangeFilter = (f) => (
+    <div key={f.key} className={styles.controlGroup}>
+      <label className={styles.controlLabel}>
+        {f.label}
+        {f.required && <span className={styles.requiredMark}>&nbsp;*</span>}
+      </label>
+      <div className={styles.rangeRow}>
+        <div className={styles.rangeHalf}>
+          <input
+            className={`${styles.controlInput} ${fieldErrors[`${f.key}_from`] ? styles.inputError : ""}`}
+            type={f.subType}
+            value={getParamValue(f.keyFrom)}
+            onChange={(e) => setParam(f.keyFrom, e.target.value)}
+            placeholder={f.placeholderFrom}
+            min={f.min ?? undefined}
+            max={f.max ?? undefined}
+          />
+          {fieldErrors[`${f.key}_from`] && (
+            <span className={styles.fieldError}>{fieldErrors[`${f.key}_from`]}</span>
+          )}
+        </div>
+
+        <span className={styles.rangeSep}>—</span>
+
+        <div className={styles.rangeHalf}>
+          <input
+            className={`${styles.controlInput} ${fieldErrors[`${f.key}_to`] ? styles.inputError : ""}`}
+            type={f.subType}
+            value={getParamValue(f.keyTo)}
+            onChange={(e) => setParam(f.keyTo, e.target.value)}
+            placeholder={f.placeholderTo}
+            min={f.min ?? undefined}
+            max={f.max ?? undefined}
+          />
+          {fieldErrors[`${f.key}_to`] && (
+            <span className={styles.fieldError}>{fieldErrors[`${f.key}_to`]}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── Single filter renderer ───────────────────────────────
+  const renderFilter = (f) => {
+    if (f.type === "range") return renderRangeFilter(f);
+
+    return (
+      <div key={f.key} className={styles.controlGroup}>
+        <label className={styles.controlLabel}>
+          {f.label}
+          {f.required && <span className={styles.requiredMark}>&nbsp;*</span>}
+        </label>
+
+        {f.type === "select" ? (
+          <select
+            className={`${styles.controlSelect} ${fieldErrors[f.key] ? styles.inputError : ""}`}
+            value={getParamValue(f.key, f.defaultValue)}
+            onChange={(e) => setParam(f.key, e.target.value)}
+          >
+            <option value="">— {f.required ? "Select one" : "All"} —</option>
+            {f.options.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className={`${styles.controlInput} ${fieldErrors[f.key] ? styles.inputError : ""}`}
+            type={f.type}
+            value={getParamValue(f.key, f.defaultValue)}
+            onChange={(e) => setParam(f.key, e.target.value)}
+            placeholder={f.label}
+            min={f.min ?? (f.type === "number" ? 0 : undefined)}
+            max={f.max ?? undefined}
+          />
+        )}
+
+        {fieldErrors[f.key] && (
+          <span className={styles.fieldError}>{fieldErrors[f.key]}</span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -205,33 +391,8 @@ export default function Reports() {
           </select>
         </div>
 
-        {/* dynamic filter inputs */}
-        {currentReport.filters.map((f) => (
-          <div key={f.key} className={styles.controlGroup}>
-            <label className={styles.controlLabel}>{f.label}</label>
-            {f.type === "select" ? (
-              <select
-                className={styles.controlSelect}
-                value={params[f.key] ?? ""}
-                onChange={(e) => setParam(f.key, e.target.value)}
-              >
-                <option value="">— All —</option>
-                {f.options.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className={styles.controlInput}
-                type={f.type}
-                value={params[f.key] ?? ""}
-                onChange={(e) => setParam(f.key, e.target.value)}
-                placeholder={f.label}
-                min={f.type === "number" ? 0 : undefined}
-              />
-            )}
-          </div>
-        ))}
+        {/* dynamic filter inputs — range filters get special paired rendering */}
+        {currentReport.filters.map((f) => renderFilter(f))}
 
         {currentReport.filters.length === 0 && (
           <span className={styles.noFilter}>No filters required</span>

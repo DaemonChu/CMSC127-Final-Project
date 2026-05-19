@@ -12,11 +12,12 @@ import {
 const router = express.Router();
 
 // === CRUD ===
+router.get("/search", searchRegistrations);
 router.get("/", getAllRegistrations);
+router.post("/renew", renewRegistration);
 router.post("/", createRegistration);
 router.patch("/:registration_number", updateRegistration);
 router.delete("/:registration_number", deleteRegistration);
-router.post("/renew", renewRegistration);
 
 // === SEARCH + REGISTRATION REPORTS ===
 router.get("/search", searchRegistrations);

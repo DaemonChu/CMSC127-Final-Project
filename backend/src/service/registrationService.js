@@ -4,12 +4,9 @@ import db from "../config/db.js";
 // HELPER FUNCTIONS
 // =====================
 
-// generate registration number
 function generateRegistrationNumber() {
-  // 9-digit range: 100000000 - 999999999
   const min = 100000000;
   const max = 999999999;
-
   return String(Math.floor(Math.random() * (max - min + 1)) + min);
 }
 
@@ -17,52 +14,35 @@ export function isValidRegistrationNumber(registrationNumber) {
   return /^\d{9}$/.test(registrationNumber);
 }
 
-// fetch vehicle for renewal
 export async function getVehicleByMV(MV_number) {
   const [rows] = await db.query(
-    `
-    SELECT *
-    FROM vehicle
-    WHERE MV_number = ?
-      AND is_archived = FALSE
-    `,
+    `SELECT * FROM vehicle WHERE MV_number = ? AND is_archived = FALSE`,
     [MV_number],
   );
-
   return rows[0];
 }
 
-// fetch active vehicle registration for renewal
 export async function getActiveRegistrationByMV(MV_number) {
   const [rows] = await db.query(
-    `
-    SELECT *
-    FROM vehicleRegistration
-    WHERE MV_number = ?
-      AND registration_status = 'active'
-    LIMIT 1
-    `,
+    `SELECT * FROM vehicleRegistration
+     WHERE MV_number = ? AND registration_status = 'active'
+     LIMIT 1`,
     [MV_number],
   );
-
   return rows[0];
 }
 
-// allowed registration table columns for sorting (!! FIX: EDIT THIS LATER ONCE UI IMPLEMENTED)
 const sortMap = {
   registration_number: "registration_number",
   registration_status: "registration_status",
-  registration_date: "registration_date",
-  expiration_date: "expiration_date",
-  MV_number: "MV_number",
+  registration_date:   "registration_date",
+  expiration_date:     "expiration_date",
+  MV_number:           "MV_number",
 };
 
-// sorting
 function buildOrderBy(sortBy = "registration_date", order = "DESC") {
   const safeOrder = order?.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
   const safeField = sortMap[sortBy] || "registration_date";
-
   return `ORDER BY ${safeField} ${safeOrder}`;
 }
 
@@ -75,8 +55,9 @@ export async function getAllRegistrations(sortBy, order) {
   const orderBy = buildOrderBy(sortBy, order);
 
   const [rows] = await db.query(`
-    SELECT *
-    FROM vehicleRegistration
+    SELECT vr.*, v.plate_number
+    FROM vehicleRegistration vr
+    LEFT JOIN vehicle v ON vr.MV_number = v.MV_number
     ${orderBy}
   `);
 
@@ -85,48 +66,50 @@ export async function getAllRegistrations(sortBy, order) {
 
 // --- SEARCH / FILTER REGISTRATIONS ---
 export async function searchRegistrations(filters = {}, sortBy, order) {
+  const orderBy = buildOrderBy(sortBy, order);
   const values = [];
+
   let query = `
-    SELECT *
-    FROM vehicleRegistration
+    SELECT vr.*, v.plate_number
+    FROM vehicleRegistration vr
+    LEFT JOIN vehicle v ON vr.MV_number = v.MV_number
     WHERE 1=1
   `;
 
-  const orderBy = buildOrderBy(sortBy, order);
-
-  // KEYWORD SEARCH
+  // KEYWORD SEARCH — registration_number, MV_number, plate_number
   if (filters.keyword?.trim()) {
     const search = `%${filters.keyword.trim()}%`;
-
     query += `
       AND (
-        registration_number LIKE ?
-        OR registration_status LIKE ?
-        OR MV_number LIKE ?
+        vr.registration_number LIKE ?
+        OR vr.MV_number LIKE ?
+        OR v.plate_number LIKE ?
       )
     `;
-
     values.push(search, search, search);
   }
 
-  // EXPIRED FILTER
-  if (filters.expired === true) {
-    query += ` AND expiration_date < ?`;
+  // STATUS FILTER
+  if (filters.status) {
+    query += ` AND vr.registration_status = ?`;
+    values.push(filters.status);
+  }
+
+  // EXPIRED AS OF DATE (for report)
+  if (filters.expired === true && filters.date) {
+    query += ` AND vr.expiration_date < ?`;
     values.push(filters.date);
   }
 
-  // MV HISTORY FILTER
+  // MV HISTORY FILTER (for report)
   if (filters.MV_number) {
-    query += ` AND MV_number = ?`;
+    query += ` AND vr.MV_number = ?`;
     values.push(filters.MV_number);
-
-    query += ` ${buildOrderBy("registration_date", "DESC")}`;
-  } else {
-    query += ` ${orderBy}`;
   }
 
-  const [result] = await db.query(query, values);
+  query += ` ${orderBy}`;
 
+  const [result] = await db.query(query, values);
   return result;
 }
 
@@ -141,15 +124,23 @@ export async function createRegistration(data) {
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
+        // VALIDATE MV_number exists
+        const [vehicle] = await connection.query(
+          `SELECT 1 FROM vehicle WHERE MV_number = ? AND is_archived = FALSE LIMIT 1`,
+          [data.MV_number],
+        );
+
+        if (vehicle.length === 0) {
+          const err = new Error("Vehicle does not exist");
+          err.code = "VEHICLE_NOT_FOUND";
+          throw err;
+        }
+
         // ACTIVE REGISTRATION CHECK
         const [active] = await connection.query(
-          `
-          SELECT 1
-          FROM vehicleRegistration
-          WHERE MV_number = ?
-            AND registration_status = 'active'
-          LIMIT 1
-          `,
+          `SELECT 1 FROM vehicleRegistration
+           WHERE MV_number = ? AND registration_status = 'active'
+           LIMIT 1`,
           [data.MV_number],
         );
 
@@ -171,53 +162,39 @@ export async function createRegistration(data) {
           throw err;
         }
 
-        // USE PROVIDED OR GENERATE
         const registration_number =
           data.registration_number || generateRegistrationNumber();
 
-        // INSERT QUERY
-        const query = `
-          INSERT INTO vehicleRegistration (
+        const [result] = await connection.query(
+          `INSERT INTO vehicleRegistration (
             registration_number,
             registration_status,
             registration_date,
             expiration_date,
             MV_number
-          )
-          VALUES (?, ?, ?, ?, ?)
-        `;
-
-        const values = [
-          registration_number,
-          data.registration_status,
-          data.registration_date,
-          data.expiration_date,
-          data.MV_number,
-        ];
-
-        const [result] = await connection.query(query, values);
+          ) VALUES (?, ?, ?, ?, ?)`,
+          [
+            registration_number,
+            data.registration_status || "active",
+            data.registration_date,
+            data.expiration_date,
+            data.MV_number,
+          ],
+        );
 
         await connection.commit();
-
-        return {
-          ...result,
-          registration_number,
-        };
+        return { ...result, registration_number };
       } catch (err) {
         lastError = err;
 
-        console.log("CREATE REGISTRATION ERROR:", err.code, err.message);
-
-        // RETRY ONLY IF AUTO-GENERATED DUPLICATE
         if (err.code === "ER_DUP_ENTRY" && !data.registration_number) {
           continue;
         }
 
-        // DUPLICATE MANNUAL INPUT
         if (err.code === "ER_DUP_ENTRY" && data.registration_number) {
-          const err = new Error("Registration number already exists");
-          err.code = "DUPLICATE_REGISTRATION_NUMBER";
-          throw err;
+          const dupErr = new Error("Registration number already exists");
+          dupErr.code = "DUPLICATE_REGISTRATION_NUMBER";
+          throw dupErr;
         }
 
         throw err;
@@ -235,23 +212,20 @@ export async function createRegistration(data) {
 
 // --- UPDATE REGISTRATION ---
 export async function updateRegistration(registration_number, data) {
-  const query = `
-    UPDATE vehicleRegistration
-    SET
-      registration_status = ?,
-      registration_date = ?,
-      expiration_date = ?
-    WHERE registration_number = ?
-  `;
-
-  const values = [
-    data.registration_status,
-    data.registration_date,
-    data.expiration_date,
-    registration_number,
-  ];
-
-  const [result] = await db.query(query, values);
+  const [result] = await db.query(
+    `UPDATE vehicleRegistration
+     SET
+       registration_status = ?,
+       registration_date = ?,
+       expiration_date = ?
+     WHERE registration_number = ?`,
+    [
+      data.registration_status,
+      data.registration_date,
+      data.expiration_date,
+      registration_number,
+    ],
+  );
 
   if (result.affectedRows === 0) {
     const err = new Error("Registration not found");
@@ -265,10 +239,7 @@ export async function updateRegistration(registration_number, data) {
 // --- DELETE REGISTRATION ---
 export async function deleteRegistration(registration_number) {
   const [result] = await db.query(
-    `
-    DELETE FROM vehicleRegistration
-    WHERE registration_number = ?
-    `,
+    `DELETE FROM vehicleRegistration WHERE registration_number = ?`,
     [registration_number],
   );
 
@@ -289,7 +260,6 @@ export async function renewRegistration({ MV_number }) {
     await connection.beginTransaction();
 
     const vehicle = await getVehicleByMV(MV_number);
-
     if (!vehicle) {
       const err = new Error("Vehicle does not exist");
       err.code = "VEHICLE_NOT_FOUND";
@@ -297,7 +267,6 @@ export async function renewRegistration({ MV_number }) {
     }
 
     const active = await getActiveRegistrationByMV(MV_number);
-
     if (active) {
       const err = new Error("Vehicle already has an active registration");
       err.code = "ACTIVE_REGISTRATION_EXISTS";
@@ -310,48 +279,33 @@ export async function renewRegistration({ MV_number }) {
       try {
         const registration_number = generateRegistrationNumber();
 
-        const query = `
-          INSERT INTO vehicleRegistration (
+        const [result] = await connection.query(
+          `INSERT INTO vehicleRegistration (
             registration_number,
             registration_status,
             registration_date,
             expiration_date,
             MV_number
-          )
-          VALUES (
+          ) VALUES (
             ?,
             'active',
             CURDATE(),
             DATE_ADD(CURDATE(), INTERVAL 5 YEAR),
             ?
-          )
-        `;
-
-        const [result] = await connection.query(query, [
-          registration_number,
-          MV_number,
-        ]);
+          )`,
+          [registration_number, MV_number],
+        );
 
         await connection.commit();
-
-        return {
-          ...result,
-          registration_number,
-        };
+        return { ...result, registration_number };
       } catch (err) {
         lastError = err;
-
-        if (err.code === "ER_DUP_ENTRY") {
-          continue;
-        }
-
+        if (err.code === "ER_DUP_ENTRY") continue;
         throw err;
       }
     }
 
-    throw (
-      lastError || new Error("Failed to generate unique registration number")
-    );
+    throw lastError || new Error("Failed to generate unique registration number");
   } catch (err) {
     await connection.rollback();
     throw err;

@@ -8,7 +8,7 @@ TO DO:
 
 [ CRUD ]
 - getAllRegistration (DONE)
-- searchRegistration (ORDER)
+- searchRegistration (DONE)
 - createRegistration (DONE)
 - updateRegistration (DONE)
 - renewRegistation (DONE)
@@ -49,13 +49,12 @@ export const getAllRegistrations = async (req, res) => {
 // --- SEARCH REGISTRATION ---
 export const searchRegistrations = async (req, res) => {
   try {
-    const { keyword, sortBy, order, MV_number, expired, date } = req.query;
+    const { keyword, sortBy, order, MV_number, status, expired, date } = req.query;
 
     const filters = {
       keyword,
-      sortBy,
-      order,
       MV_number,
+      status,
       expired: expired === "true",
       date,
     };
@@ -97,6 +96,13 @@ export const createRegistration = async (req, res) => {
     });
   } catch (err) {
     console.error("CREATE REGISTRATION ERROR:", err);
+
+    // vehicle not found
+    if (err.code === "VEHICLE_NOT_FOUND") {
+      return res.status(404).json({
+        message: err.message,
+      });
+    }
 
     // vehicle already has active registration
     if (err.code === "ACTIVE_REGISTRATION_EXISTS") {

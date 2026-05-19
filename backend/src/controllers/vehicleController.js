@@ -72,30 +72,25 @@ export const getAllArchivedVehicles = async (req, res) => {
 // --- SEARCH VEHICLES + REPORT (driver filter) ---
 export const searchVehicles = async (req, res) => {
   try {
-    const { keyword, license_number, isArchived, sortBy, order } = req.query;
+    const { keyword, license_number, vehicleType, isArchived, sortBy, order } = req.query;
 
     const result = await vehicleService.searchVehicles(
       keyword,
       license_number,
+      vehicleType,     // added
       isArchived,
       sortBy,
       order,
     );
 
     if (!result.length) {
-      return res.status(404).json({
-        message: "No vehicles found",
-      });
+      return res.status(404).json({ message: "No vehicles found" });
     }
 
     res.json(result);
   } catch (err) {
     console.error("SEARCH VEHICLES ERROR:", err);
-
-    res.status(500).json({
-      message: "Failed to fetch vehicles",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Failed to fetch vehicles", error: err.message });
   }
 };
 

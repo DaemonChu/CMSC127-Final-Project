@@ -139,6 +139,7 @@ export async function getAllArchivedVehicles(sortBy, order) {
 export async function searchVehicles(
   keyword,
   license_number,
+  vehicleType,
   isArchived = false,
   sortBy,
   order,
@@ -177,8 +178,12 @@ export async function searchVehicles(
     values.push(license_number);
   }
 
-  query += ` ${orderBy}`;
+  if (vehicleType) {
+    query += ` AND LOWER(vehicle_type) = ?`;
+    values.push(vehicleType.toLowerCase());
+  }
 
+  query += ` ${orderBy}`;
   const [rows] = await db.query(query, values);
   return rows;
 }

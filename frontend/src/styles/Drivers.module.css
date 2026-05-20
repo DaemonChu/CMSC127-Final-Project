@@ -178,7 +178,8 @@
 .body {
   flex: 1;
   display: flex;
-  gap: 0;
+  flex-direction: row;
+  gap: 1rem;
   padding: 1rem 1.5rem 1.5rem;
   min-height: 0;
   overflow: hidden;
@@ -187,11 +188,12 @@
 /* wrap table */
 .tableWrap {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: auto;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(10, 31, 92, 0.08);
-  min-width: 0;
 }
 
 .errorBanner {
@@ -285,8 +287,11 @@
 /* side panel */
 .panel {
   width: 340px;
+  max-width: 340px;
   flex-shrink: 0;
-  margin-left: 1rem;
+  flex-grow: 0;        /* prevent stretching */
+  align-self: flex-start; /* shrink to content height */
+  margin-left: 0;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(10, 31, 92, 0.10);
@@ -295,6 +300,7 @@
   overflow: hidden;
   animation: slideIn 0.2s ease;
 }
+
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(16px); }
@@ -411,7 +417,7 @@
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 8px;
-  margin-top: auto;
+  margin-top: 1rem;
 }
 
 /* confirmation modal */
@@ -569,4 +575,14 @@
 
 .btnClearFilters:hover {
   background: #fdecea;
+}
+
+.bodyWithPanel .tableWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.bodyWithPanel {
+  display: flex;
+  gap: 1rem;
 }

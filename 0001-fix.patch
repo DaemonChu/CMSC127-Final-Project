@@ -1,0 +1,196 @@
+From d9fe1753cb1c76b5ab4f6920bd8d447203efbe92 Mon Sep 17 00:00:00 2001
+From: "Natasha Lois S. Montas" <nsmontas@up.edu.ph>
+Date: Wed, 20 May 2026 07:57:50 +0800
+Subject: [PATCH] fix
+
+---
+ frontend/index.html            |  2 +-
+ frontend/src/pages/Reports.jsx | 44 ++++++++++------------------------
+ 2 files changed, 14 insertions(+), 32 deletions(-)
+
+diff --git a/frontend/index.html b/frontend/index.html
+index d0c4b55..a180660 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -2,7 +2,7 @@
+ <html lang="en">
+   <head>
+     <meta charset="UTF-8" />
+-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
++    <link rel="icon" type="image/svg+xml" href="/lto-logo.png" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <title>lto-ims</title>
+   </head>
+diff --git a/frontend/src/pages/Reports.jsx b/frontend/src/pages/Reports.jsx
+index 67afbbe..e048f51 100644
+--- a/frontend/src/pages/Reports.jsx
++++ b/frontend/src/pages/Reports.jsx
+@@ -9,30 +9,18 @@ const LICENSE_STATUSES = ["valid", "expired", "suspended", "revoked"];
+ const SEX_OPTIONS      = ["Male", "Female"];
+ const VEHICLE_TYPES    = ["Motorcycle", "Private Car", "Public Utility Vehicle", "Truck", "Bus"];
+ 
+-// today's date as YYYY-MM-DD — used as default for "as of date" in registrations report
+ const TODAY = new Date().toISOString().slice(0, 10);
+ 
+ // ─── Tab definitions ─────────────────────────────────────────
+ const TABS = ["Drivers", "Vehicles", "Registrations", "Violations"];
+ 
+-// ─── Report configs per tab ──────────────────────────────────
+-// Filter types:
+-//   "select"   → dropdown
+-//   "text"     → free text input
+-//   "number"   → number input
+-//   "date"     → date picker
+-//   "range"    → two inputs rendered inline as "From — To" or "Min — Max"
+-//               uses keyFrom / keyTo for the two param keys
+-//               subType: "number" | "date" controls input type of each half
+-//               required: true blocks submit if either half is blank
+ const REPORT_CONFIGS = {
+   Drivers: [
+     {
+       id: "by-license-type",
+       label: "By License Type",
+       filters: [
+-        // required — backend returns 400 if type is missing
+-        { key: "type", label: "License Type", type: "select", options: LICENSE_TYPES, required: true },
++        { key: "type", label: "License Type", type: "select", options: LICENSE_TYPES },
+       ],
+       buildUrl: (p) => `${API}/drivers/reports/license-type?type=${enc(p.type)}`,
+     },
+@@ -40,8 +28,7 @@ const REPORT_CONFIGS = {
+       id: "by-status",
+       label: "By License Status",
+       filters: [
+-        // required — backend returns 400 if status is missing
+-        { key: "status", label: "License Status", type: "select", options: LICENSE_STATUSES, required: true },
++        { key: "status", label: "License Status", type: "select", options: LICENSE_STATUSES },
+       ],
+       buildUrl: (p) => `${API}/drivers/reports/status?status=${enc(p.status)}`,
+     },
+@@ -49,7 +36,6 @@ const REPORT_CONFIGS = {
+       id: "by-age-range",
+       label: "By Age Range",
+       filters: [
+-        // single range control — both halves required; validated min <= max before submit
+         {
+           key: "ageRange",
+           label: "Age Range",
+@@ -61,7 +47,7 @@ const REPORT_CONFIGS = {
+           placeholderTo: "Max age",
+           min: 0,
+           max: 120,
+-          required: true,
++          required: false,
+         },
+       ],
+       buildUrl: (p) => `${API}/drivers/reports/age-range?min=${p.min ?? ""}&max=${p.max ?? ""}`,
+@@ -70,15 +56,13 @@ const REPORT_CONFIGS = {
+       id: "by-sex",
+       label: "By Sex",
+       filters: [
+-        // required — backend returns 400 if sex is missing
+-        { key: "sex", label: "Sex", type: "select", options: SEX_OPTIONS, required: true },
++        { key: "sex", label: "Sex", type: "select", options: SEX_OPTIONS },
+       ],
+       buildUrl: (p) => `${API}/drivers/reports/sex?sex=${enc(p.sex)}`,
+     },
+     {
+       id: "bad-status",
+       label: "Expired / Suspended Licenses",
+-      // spec: "View all drivers with expired or suspended licenses" — no filter needed
+       filters: [],
+       buildUrl: () => `${API}/drivers/reports/bad-status`,
+     },
+@@ -88,9 +72,7 @@ const REPORT_CONFIGS = {
+       id: "by-driver",
+       label: "Vehicles by Driver",
+       filters: [
+-        // required — spec: "all vehicles owned by a given driver"
+         { key: "license_number", label: "License #", type: "text", required: true },
+-        // optional — backend supports ?vehicleType= for narrowing
+         { key: "vehicleType", label: "Vehicle Type (optional)", type: "select", options: VEHICLE_TYPES },
+       ],
+       buildUrl: (p) =>
+@@ -102,7 +84,6 @@ const REPORT_CONFIGS = {
+       id: "expired",
+       label: "Expired Registrations as of Date",
+       filters: [
+-        // required — spec: "as of a given date"; defaults to today
+         { key: "as_of", label: "As of Date", type: "date", required: true, defaultValue: TODAY },
+       ],
+       buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${p.as_of || TODAY}`,
+@@ -113,10 +94,7 @@ const REPORT_CONFIGS = {
+       id: "by-driver",
+       label: "Violations by Driver & Date Range",
+       filters: [
+-        // required — spec: "given driver"
+         { key: "license_number", label: "License #", type: "text", required: true },
+-        // optional date range — spec: "within a specified date range"
+-        // rendered as a single paired From — To control; omitting returns all violations for driver
+         {
+           key: "dateRange",
+           label: "Date Range (optional)",
+@@ -136,7 +114,6 @@ const REPORT_CONFIGS = {
+       id: "by-type-year",
+       label: "Total Violations by Type (Year)",
+       filters: [
+-        // required — backend returns 400 if year is missing
+         { key: "year", label: "Year", type: "number", required: true, min: 2000, max: 2100 },
+       ],
+       buildUrl: (p) => `${API}/violations/reports/by-type?year=${p.year ?? ""}`,
+@@ -145,7 +122,6 @@ const REPORT_CONFIGS = {
+       id: "vehicles-by-city",
+       label: "Vehicles in Violations by City / Region",
+       filters: [
+-        // spec: "given city or region" — backend accepts both as separate params
+         { key: "city",   label: "City (optional)",   type: "text" },
+         { key: "region", label: "Region (optional)", type: "text" },
+       ],
+@@ -223,12 +199,13 @@ export default function Reports() {
+         const fromVal = params[f.keyFrom] ?? "";
+         const toVal   = params[f.keyTo]   ?? "";
+ 
++        // if required, both halves must be filled
+         if (f.required) {
+           if (!fromVal) errors[`${f.key}_from`] = `${f.placeholderFrom} is required`;
+           if (!toVal)   errors[`${f.key}_to`]   = `${f.placeholderTo} is required`;
+         }
+ 
+-        // cross-field validation: from must not exceed to
++        // cross-field: if both filled, from must not exceed to
+         if (fromVal && toVal) {
+           if (f.subType === "number" && Number(fromVal) > Number(toVal)) {
+             errors[`${f.key}_from`] = "Min cannot be greater than Max";
+@@ -237,6 +214,11 @@ export default function Reports() {
+             errors[`${f.key}_from`] = "Start date cannot be after end date";
+           }
+         }
++
++        // if only one half is filled, nudge the user to fill the other
++        if (fromVal && !toVal) errors[`${f.key}_to`]   = `${f.placeholderTo} is required`;
++        if (!fromVal && toVal) errors[`${f.key}_from`] = `${f.placeholderFrom} is required`;
++
+       } else {
+         const val = params[f.key] ?? f.defaultValue ?? "";
+         if (f.required && !val) {
+@@ -332,7 +314,7 @@ export default function Reports() {
+             value={getParamValue(f.key, f.defaultValue)}
+             onChange={(e) => setParam(f.key, e.target.value)}
+           >
+-            <option value="">— {f.required ? "Select one" : "All"} —</option>
++            <option value="">— All —</option>
+             {f.options.map((o) => (
+               <option key={o} value={o}>{o}</option>
+             ))}
+@@ -391,7 +373,7 @@ export default function Reports() {
+           </select>
+         </div>
+ 
+-        {/* dynamic filter inputs — range filters get special paired rendering */}
++        {/* dynamic filter inputs */}
+         {currentReport.filters.map((f) => renderFilter(f))}
+ 
+         {currentReport.filters.length === 0 && (
+-- 
+2.39.5 (Apple Git-154)
+

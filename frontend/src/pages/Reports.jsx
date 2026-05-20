@@ -5,7 +5,7 @@ const API = "http://localhost:3000/api";
 
 const LICENSE_TYPES    = ["Student Permit", "Non-Professional", "Professional"];
 const LICENSE_STATUSES = ["valid", "expired", "suspended", "revoked"];
-const SEX_OPTIONS      = ["Male", "Female"];
+const SEX_OPTIONS      = ["M", "F"];
 const VEHICLE_TYPES    = ["Motorcycle", "Private Car", "Public Utility Vehicle", "Truck", "Bus"];
 
 const TODAY = new Date().toISOString().slice(0, 10);

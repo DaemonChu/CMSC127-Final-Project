@@ -52,10 +52,6 @@ function buildOrderBy(sortBy = "registration_date", order = "DESC") {
 
 // --- GET ALL REGISTRATIONS ---
 export async function getAllRegistrations(sortBy, order) {
-  // FIX: was declaring `orderBy` with const inside the function body,
-  // which conflicted with the same name in searchRegistrations in the
-  // same module scope under some engine versions. Now each function
-  // uses its own clearly-scoped call.
   const ob = buildOrderBy(sortBy, order);
 
   const [rows] = await db.query(`
@@ -70,6 +66,8 @@ export async function getAllRegistrations(sortBy, order) {
 
 // --- SEARCH / FILTER REGISTRATIONS ---
 export async function searchRegistrations(filters = {}, sortBy, order) {
+  console.log("SERVICE FILTERS:", JSON.stringify(filters));
+
   const ob = buildOrderBy(sortBy, order);
   const values = [];
 
@@ -80,7 +78,7 @@ export async function searchRegistrations(filters = {}, sortBy, order) {
     WHERE 1=1
   `;
 
-  // KEYWORD SEARCH — registration_number, MV_number, plate_number
+  // KEYWORD SEARCH
   if (filters.keyword?.trim()) {
     const search = `%${filters.keyword.trim()}%`;
     query += `
@@ -100,12 +98,12 @@ export async function searchRegistrations(filters = {}, sortBy, order) {
   }
 
   // EXPIRED AS OF DATE (for report)
-  if (filters.expired === true && filters.date) {
-    query += ` AND vr.expiration_date < ?`;
+  if (filters.expired && filters.date) {
+    query += ` AND vr.expiration_date <= ?`;
     values.push(filters.date);
   }
 
-  // MV HISTORY FILTER (for report)
+  // MV HISTORY FILTER
   if (filters.MV_number) {
     query += ` AND vr.MV_number = ?`;
     values.push(filters.MV_number);
@@ -128,7 +126,6 @@ export async function createRegistration(data) {
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        // VALIDATE MV_number exists
         const [vehicle] = await connection.query(
           `SELECT 1 FROM vehicle WHERE MV_number = ? AND is_archived = FALSE LIMIT 1`,
           [data.MV_number],
@@ -140,7 +137,6 @@ export async function createRegistration(data) {
           throw err;
         }
 
-        // ACTIVE REGISTRATION CHECK
         const [active] = await connection.query(
           `SELECT 1 FROM vehicleRegistration
            WHERE MV_number = ? AND registration_status = 'active'
@@ -154,7 +150,6 @@ export async function createRegistration(data) {
           throw err;
         }
 
-        // VALIDATE MANUAL INPUT
         if (
           data.registration_number &&
           !isValidRegistrationNumber(data.registration_number)

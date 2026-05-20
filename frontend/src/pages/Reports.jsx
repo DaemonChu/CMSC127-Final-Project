@@ -18,7 +18,6 @@ const REPORT_CONFIGS = {
       id: "by-license-type",
       label: "By License Type",
       filters: [
-        
         { key: "type", label: "License Type", type: "select", options: LICENSE_TYPES, required: true },
       ],
       buildUrl: (p) => `${API}/drivers/reports/license-type?type=${enc(p.type)}`,
@@ -27,7 +26,6 @@ const REPORT_CONFIGS = {
       id: "by-status",
       label: "By License Status",
       filters: [
-        
         { key: "status", label: "License Status", type: "select", options: LICENSE_STATUSES, required: true },
       ],
       buildUrl: (p) => `${API}/drivers/reports/status?status=${enc(p.status)}`,
@@ -36,7 +34,6 @@ const REPORT_CONFIGS = {
       id: "by-age-range",
       label: "By Age Range",
       filters: [
-        
         {
           key: "ageRange",
           label: "Age Range",
@@ -57,7 +54,6 @@ const REPORT_CONFIGS = {
       id: "by-sex",
       label: "By Sex",
       filters: [
-        
         { key: "sex", label: "Sex", type: "select", options: SEX_OPTIONS, required: true },
       ],
       buildUrl: (p) => `${API}/drivers/reports/sex?sex=${enc(p.sex)}`,
@@ -65,7 +61,6 @@ const REPORT_CONFIGS = {
     {
       id: "bad-status",
       label: "Expired / Suspended Licenses",
-      
       filters: [],
       buildUrl: () => `${API}/drivers/reports/bad-status`,
     },
@@ -75,9 +70,7 @@ const REPORT_CONFIGS = {
       id: "by-driver",
       label: "Vehicles by Driver",
       filters: [
-        
         { key: "license_number", label: "License #", type: "text", required: true },
-        
         { key: "vehicleType", label: "Vehicle Type (optional)", type: "select", options: VEHICLE_TYPES },
       ],
       buildUrl: (p) =>
@@ -89,10 +82,9 @@ const REPORT_CONFIGS = {
       id: "expired",
       label: "Expired Registrations as of Date",
       filters: [
-        
         { key: "as_of", label: "As of Date", type: "date", required: true, defaultValue: TODAY },
       ],
-      buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${p.as_of || TODAY}`,
+      buildUrl: (p) => `${API}/registrations/reports/expired?as_of=${enc(p.as_of)}`,
     },
   ],
   Violations: [
@@ -100,10 +92,7 @@ const REPORT_CONFIGS = {
       id: "by-driver",
       label: "Violations by Driver & Date Range",
       filters: [
-        
         { key: "license_number", label: "License #", type: "text", required: true },
-        
-        
         {
           key: "dateRange",
           label: "Date Range (optional)",
@@ -123,7 +112,6 @@ const REPORT_CONFIGS = {
       id: "by-type-year",
       label: "Total Violations by Type (Year)",
       filters: [
-        
         { key: "year", label: "Year", type: "number", required: true, min: 2000, max: 2100 },
       ],
       buildUrl: (p) => `${API}/violations/reports/by-type?year=${p.year ?? ""}`,
@@ -132,7 +120,6 @@ const REPORT_CONFIGS = {
       id: "vehicles-by-city",
       label: "Vehicles in Violations by City / Region",
       filters: [
-        
         { key: "city",   label: "City (optional)",   type: "text" },
         { key: "region", label: "Region (optional)", type: "text" },
       ],
@@ -143,7 +130,6 @@ const REPORT_CONFIGS = {
 };
 
 const enc = (v) => encodeURIComponent(v ?? "");
-
 
 const STATUS_COLS = new Set([
   "license_status", "registration_status", "violation_status",
@@ -169,7 +155,6 @@ function getBadgeClass(val, s) {
   if (["suspended", "contested"].includes(v))        return s.badgeYellow;
   return "";
 }
-
 
 export default function Reports() {
   const [tab, setTab]                 = useState("Drivers");
@@ -205,17 +190,24 @@ export default function Reports() {
   const runReport = useCallback(async () => {
     const errors = {};
 
+    const resolvedParams = { ...params };
+    for (const f of currentReport.filters) {
+      if (f.type === "range") continue;
+      if (f.defaultValue !== undefined && resolvedParams[f.key] === undefined) {
+        resolvedParams[f.key] = f.defaultValue;
+      }
+    }
+
     for (const f of currentReport.filters) {
       if (f.type === "range") {
-        const fromVal = params[f.keyFrom] ?? "";
-        const toVal   = params[f.keyTo]   ?? "";
+        const fromVal = resolvedParams[f.keyFrom] ?? "";
+        const toVal   = resolvedParams[f.keyTo]   ?? "";
 
         if (f.required) {
           if (!fromVal) errors[`${f.key}_from`] = `${f.placeholderFrom} is required`;
           if (!toVal)   errors[`${f.key}_to`]   = `${f.placeholderTo} is required`;
         }
 
-        
         if (fromVal && toVal) {
           if (f.subType === "number" && Number(fromVal) > Number(toVal)) {
             errors[`${f.key}_from`] = "Min cannot be greater than Max";
@@ -225,7 +217,7 @@ export default function Reports() {
           }
         }
       } else {
-        const val = params[f.key] ?? f.defaultValue ?? "";
+        const val = resolvedParams[f.key] ?? "";
         if (f.required && !val) {
           errors[f.key] = `${f.label} is required`;
         }
@@ -240,7 +232,8 @@ export default function Reports() {
 
     setLoading(true); setError(""); setResults([]); setRan(false);
     try {
-      const url = currentReport.buildUrl(params);
+      const url = currentReport.buildUrl(resolvedParams);
+      console.log("FETCH URL:", url);
       const res = await fetch(url);
       if (res.status === 404) { setResults([]); setRan(true); return; }
       if (!res.ok) {
@@ -259,7 +252,6 @@ export default function Reports() {
 
   const columns = results.length > 0 ? Object.keys(results[0]) : [];
 
-  
   const renderRangeFilter = (f) => (
     <div key={f.key} className={styles.controlGroup}>
       <label className={styles.controlLabel}>
@@ -302,7 +294,6 @@ export default function Reports() {
     </div>
   );
 
-  
   const renderFilter = (f) => {
     if (f.type === "range") return renderRangeFilter(f);
 
@@ -364,7 +355,6 @@ export default function Reports() {
 
       {/* report picker, filter inputs, run button */}
       <div className={styles.controlsBar}>
-        {/* report type selector */}
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Report Type</label>
           <select
@@ -378,7 +368,6 @@ export default function Reports() {
           </select>
         </div>
 
-        {/* dynamic filter inputs — range filters get special paired rendering */}
         {currentReport.filters.map((f) => renderFilter(f))}
 
         {currentReport.filters.length === 0 && (

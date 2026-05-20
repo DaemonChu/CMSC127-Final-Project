@@ -204,7 +204,7 @@
 }
 
 .fieldError {
-  font-size: 12px;
+  font-size: 10px;
   color: #c0392b;   /* red text */
   margin-top: 2px;  /* small spacing above */
 }

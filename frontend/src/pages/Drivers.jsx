@@ -1,15 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import styles from "../styles/Drivers.module.css";
 
-// ── API base — Vite proxy forwards /api → localhost:3000
 const API = "/api/drivers";
 
-// ── Dropdown options (values must match DB exactly)
 const LICENSE_TYPES    = ["student permit", "non-professional", "professional"];
 const LICENSE_STATUSES = ["valid", "expired", "suspended", "revoked"];
 
-// Sex uses objects so we can show "Male"/"Female" in the UI
-// but send "M"/"F" to the backend (matching what the DB stores)
 const SEX_OPTIONS = [
   { value: "M", label: "Male"   },
   { value: "F", label: "Female" },
@@ -23,7 +19,7 @@ const SORT_OPTIONS = [
   { value: "license_status",          label: "License Status"},
 ];
 
-// ── Blank form — field names match DB columns exactly
+
 const EMPTY_FORM = {
   license_number:          "",
   full_name:               "",
@@ -39,28 +35,26 @@ const EMPTY_FORM = {
   license_expiration_date: "",
 };
 
-// ── Converts "M"/"F" from DB into readable "Male"/"Female" for display
+
 const formatSex = (s) =>
   s === "M" ? "Male" : s === "F" ? "Female" : s ?? "—";
 
-// ════════════════════════════════════════════════════════════
-//  MAIN COMPONENT
-// ════════════════════════════════════════════════════════════
+
 export default function Drivers() {
-  // ── data & UI state
+
   const [drivers, setDrivers]   = useState([]);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
 
-  // ── side panel state
+
   const [selected, setSelected] = useState(null);   // currently viewed driver
-  const [mode, setMode]         = useState("view"); // "view" | "add" | "edit"
+  const [mode, setMode]         = useState("view"); 
   const [form, setForm]         = useState(EMPTY_FORM);
   const [formError, setFormError]     = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [submitting, setSubmitting]   = useState(false);
 
-  // ── filter / search / sort state
+
   const [search, setSearch]             = useState("");
   const [filterType, setFilterType]     = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -68,18 +62,14 @@ export default function Drivers() {
   const [sortBy, setSortBy]             = useState("");
   const [order, setOrder]               = useState("asc");
 
-  // ── archive view toggle
+
   const [showArchived, setShowArchived] = useState(false);
 
-  // ── confirmation modals
   const [deleteConfirm, setDeleteConfirm]   = useState(null); // license_number string
   const [archiveConfirm, setArchiveConfirm] = useState(null); // full driver object
   const [renewConfirm, setRenewConfirm]     = useState(null); // full driver object
 
-  // ════════════════════════════════════════════════════
-  //  FETCH DRIVERS
-  //  Rebuilds and re-fetches whenever any filter changes
-  // ════════════════════════════════════════════════════
+
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -97,27 +87,27 @@ export default function Drivers() {
       const hasSearch  = search.trim();
 
       if (hasSearch || hasFilters) {
-        // /api/drivers/search handles keyword + all filters + archive flag
+        
         if (hasSearch)    params.set("keyword", search.trim());
         if (filterType)   params.set("type",    filterType);
         if (filterStatus) params.set("status",  filterStatus);
-        if (filterSex)    params.set("sex",      filterSex);  // sends "M" or "F"
+        if (filterSex)    params.set("sex",      filterSex);  
 
-        // Tell backend whether to search archived or active records
+        
         params.set("isArchived", showArchived ? "true" : "false");
 
         url = `${API}/search?${params}`;
       } else if (showArchived) {
-        // /api/drivers/archived — no filters, just archived list
+        
         url = `${API}/archived?${params}`;
       } else {
-        // /api/drivers — default active driver listing
+        
         url = `${API}?${params}`;
       }
 
       const res = await fetch(url);
 
-      // 404 = no records — not a real error, just empty
+      
       if (res.status === 404) { setDrivers([]); return; }
       if (!res.ok) throw new Error("Failed to fetch drivers");
 
@@ -131,12 +121,9 @@ export default function Drivers() {
     }
   }, [search, filterType, filterStatus, filterSex, showArchived, sortBy, order]);
 
-  // Re-fetch whenever any dependency changes
+  
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
 
-  // ════════════════════════════════════════════════════
-  //  FILTER HELPERS
-  // ════════════════════════════════════════════════════
   const clearFilters = () => {
     setSearch("");
     setFilterType("");
@@ -148,9 +135,7 @@ export default function Drivers() {
 
   const hasActiveFilters = search || filterType || filterStatus || filterSex || sortBy;
 
-  // ════════════════════════════════════════════════════
-  //  PANEL HELPERS
-  // ════════════════════════════════════════════════════
+
   const openAdd = () => {
     setSelected(null);
     setForm(EMPTY_FORM);
@@ -195,13 +180,11 @@ export default function Drivers() {
     setFormSuccess("");
   };
 
-  // Updates only the changed field in form state
+
   const handleField = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // ════════════════════════════════════════════════════
-  //  CRUD HANDLERS
-  // ════════════════════════════════════════════════════
+
   const handleSubmit = async () => {
     setFormError("");
     setFormSuccess("");
@@ -209,15 +192,14 @@ export default function Drivers() {
     try {
       let res;
       if (mode === "add") {
-        // POST /api/drivers — create new driver
+
         res = await fetch(API, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify(form),
         });
       } else {
-        // PATCH /api/drivers/:license_number — update existing
-        // Strip license_number from body — backend reads it from req.params
+
         const { license_number, ...updateData } = form;
         res = await fetch(`${API}/${selected.license_number}`, {
           method:  "PATCH",
@@ -239,7 +221,6 @@ export default function Drivers() {
     }
   };
 
-  // DELETE /api/drivers/:license_number — permanent hard delete
   const handleDelete = async (licenseNumber) => {
     try {
       const res  = await fetch(`${API}/${licenseNumber}`, { method: "DELETE" });
@@ -253,8 +234,7 @@ export default function Drivers() {
     }
   };
 
-  // PATCH /api/drivers/archive/:id   — soft delete
-  // PATCH /api/drivers/unarchive/:id — restore
+
   const handleArchive = async (licenseNumber) => {
     try {
       const endpoint = showArchived
@@ -273,7 +253,6 @@ export default function Drivers() {
     }
   };
 
-  // PATCH /api/drivers/renew/:license_number — renew license dates
   const handleRenew = async (licenseNumber) => {
     try {
       const res  = await fetch(`${API}/renew/${licenseNumber}`, { method: "PATCH" });
@@ -290,9 +269,7 @@ export default function Drivers() {
     }
   };
 
-  // ════════════════════════════════════════════════════
-  //  STATUS BADGE COLOR HELPER
-  // ════════════════════════════════════════════════════
+
   const statusClass = (s) => {
     if (!s) return "";
     if (s === "valid")     return styles.statusValid;
@@ -304,9 +281,6 @@ export default function Drivers() {
 
   const panelOpen = mode === "add" || selected !== null;
 
-  // ════════════════════════════════════════════════════
-  //  RENDER
-  // ════════════════════════════════════════════════════
   return (
     <div className={styles.page}>
 
@@ -379,7 +353,7 @@ export default function Drivers() {
           </select>
         </div>
 
-        {/* Sex — value is "M"/"F", label is "Male"/"Female" */}
+        
         <div className={styles.filterGroup}>
           <label className={styles.filterLabel}>Sex</label>
           <select
@@ -477,7 +451,7 @@ export default function Drivers() {
                       {d.license_number}
                     </td>
                     <td className={styles.nameCell}>{d.full_name}</td>
-                    {/* formatSex converts "M" → "Male", "F" → "Female" */}
+                    
                     <td>{formatSex(d.sex)}</td>
                     <td>{d.license_type}</td>
                     <td>{d.license_expiration_date?.slice(0, 10)}</td>
@@ -512,7 +486,7 @@ export default function Drivers() {
                 <>
                   <DetailRow label="License #"     value={selected.license_number} mono />
                   <DetailRow label="Full Name"     value={selected.full_name} />
-                  {/* formatSex so panel shows "Male"/"Female" not "M"/"F" */}
+                 
                   <DetailRow label="Sex"           value={formatSex(selected.sex)} />
                   <DetailRow label="Date of Birth" value={selected.date_of_birth?.slice(0, 10)} />
                   <DetailRow label="Barangay"      value={selected.barangay} />
@@ -563,7 +537,7 @@ export default function Drivers() {
                 </>
               )}
 
-              {/* ── ADD / EDIT mode ── */}
+              
               {(mode === "add" || mode === "edit") && (
                 <>
                   <FormField
@@ -574,7 +548,7 @@ export default function Drivers() {
                     disabled={mode === "edit"}
                   />
                   <FormField  label="Full Name"     name="full_name"     value={form.full_name}     onChange={handleField} />
-                  {/* Sex dropdown sends "M"/"F" but displays "Male"/"Female" */}
+                 
                   <FormSelect label="Sex"           name="sex"           value={form.sex}           onChange={handleField} options={SEX_OPTIONS} />
                   <FormField  label="Date of Birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleField} />
                   <FormField  label="Barangay"      name="barangay"      value={form.barangay}      onChange={handleField} />
@@ -612,9 +586,6 @@ export default function Drivers() {
         )}
       </div>
 
-      {/* ══════════════════════════════════════════
-          CONFIRMATION MODALS
-      ══════════════════════════════════════════ */}
 
       {/* ── Delete Modal ── */}
       {deleteConfirm && (
@@ -715,12 +686,7 @@ export default function Drivers() {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-//  REUSABLE SUB-COMPONENTS
-// ════════════════════════════════════════════════════════════
 
-// DetailRow — one labelled read-only field in the view panel
-// Pass `value` for plain text, or `children` for custom content (e.g. a badge)
 function DetailRow({ label, value, mono, children }) {
   return (
     <div className={styles.detailRow}>
@@ -734,8 +700,7 @@ function DetailRow({ label, value, mono, children }) {
   );
 }
 
-// FormField — labelled text / date / number input
-// `disabled` keeps the license_number field read-only in edit mode
+
 function FormField({ label, name, value, onChange, type = "text", disabled = false }) {
   return (
     <div className={styles.formGroup}>
@@ -752,8 +717,7 @@ function FormField({ label, name, value, onChange, type = "text", disabled = fal
   );
 }
 
-// FormSelect — labelled dropdown
-// Supports both plain strings ("valid") AND objects ({ value: "M", label: "Male" })
+
 function FormSelect({ label, name, value, onChange, options }) {
   return (
     <div className={styles.formGroup}>

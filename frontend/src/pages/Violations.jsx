@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from "react";
 import styles from "../styles/Drivers.module.css";
 
-// ── API base — Vite proxy forwards /api → localhost:3000
 const API = "/api/violations";
 
 const VIOLATION_TYPES    = [
@@ -64,11 +63,6 @@ export default function Violations() {
   const [deleteConfirm,  setDeleteConfirm]  = useState(null);
   const [archiveConfirm, setArchiveConfirm] = useState(null);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────
-  // All filters (type, status, sort) are sent as query params to the backend.
-  // No client-side filtering — the backend handles everything in SQL.
-  // This means the backend getAllViolations service needs to accept
-  // ?type= and ?status= query params (see trafficViolationServices.js fix below).
   const fetchViolations = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -81,7 +75,6 @@ export default function Violations() {
         params.set("order", order);
       }
 
-      // Filters — always sent as params regardless of search state
       if (filterStatus) params.set("status", filterStatus);
       if (filterType)   params.set("type",   filterType);
 
@@ -101,7 +94,6 @@ export default function Violations() {
 
       const res = await fetch(url);
 
-      // 404 means genuinely no records — clear list, no error banner
       if (res.status === 404) { setViolations([]); return; }
       if (!res.ok) throw new Error("Failed to fetch violations");
 
@@ -116,7 +108,6 @@ export default function Violations() {
 
   useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
-  // ── Filter helpers ─────────────────────────────────────────────────────
   const clearFilters = () => {
     setSearch("");
     setFilterStatus("");
@@ -127,7 +118,7 @@ export default function Violations() {
 
   const hasActiveFilters = search || filterStatus || filterType || sortBy;
 
-  // ── Panel helpers ──────────────────────────────────────────────────────
+
   const openAdd = () => {
     setSelected(null); setForm(EMPTY_FORM);
     setMode("add"); setFormError(""); setFormSuccess("");
@@ -156,7 +147,6 @@ export default function Violations() {
   const closePanel = ()  => { setSelected(null); setMode("view"); setForm(EMPTY_FORM); setFormError(""); setFormSuccess(""); };
   const handleField = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // ── CRUD handlers ──────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setFormError(""); setFormSuccess(""); setSubmitting(true);
     try {

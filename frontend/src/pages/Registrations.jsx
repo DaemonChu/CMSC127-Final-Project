@@ -10,7 +10,6 @@ const EMPTY_FORM = {
   registration_status: "",
 };
 
-// matches all statuses in seed data including revoked
 const REG_STATUSES = ["active", "expired", "suspended", "revoked"];
 
 const SORT_OPTIONS = [
@@ -37,6 +36,7 @@ export default function Registrations() {
   const [order, setOrder]               = useState("desc");
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [renewConfirm, setRenewConfirm]   = useState(null);
 
   const fetchRegistrations = useCallback(async () => {
     setLoading(true);
@@ -46,7 +46,6 @@ export default function Registrations() {
       if (sortBy) { params.set("sortBy", sortBy); params.set("order", order); }
 
       let url;
-      // always route through /search when any filter is active
       if (search.trim() || filterStatus) {
         if (search.trim()) params.set("keyword", search.trim());
         if (filterStatus)  params.set("status", filterStatus);
@@ -90,7 +89,7 @@ export default function Registrations() {
     setMode("edit"); setFormError(""); setFormSuccess("");
   };
 
-  const openView  = (r) => { setSelected(r); setMode("view"); setFormError(""); setFormSuccess(""); };
+  const openView   = (r) => { setSelected(r); setMode("view"); setFormError(""); setFormSuccess(""); };
   const closePanel = () => { setSelected(null); setMode("view"); setForm(EMPTY_FORM); setFormError(""); setFormSuccess(""); };
   const handleField = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -129,6 +128,27 @@ export default function Registrations() {
       if (!res.ok) throw new Error("Failed to delete");
       setDeleteConfirm(null); fetchRegistrations(); closePanel();
     } catch (e) { setFormError(e.message); }
+  };
+
+  const handleRenew = async (MV_number) => {
+    setFormError(""); setFormSuccess(""); setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/renew`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ MV_number }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Renewal failed");
+      setRenewConfirm(null);
+      fetchRegistrations();
+      closePanel();
+    } catch (e) {
+      setRenewConfirm(null);
+      setFormError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const statusClass = (s) => {
@@ -270,9 +290,15 @@ export default function Registrations() {
                       {selected.registration_status}
                     </span>
                   </DetailRow>
+                  {formError && <p className={styles.formError}>{formError}</p>}
                   <div className={styles.panelActions}>
                     <button className={styles.btnEdit}   onClick={() => openEdit(selected)}>Edit</button>
                     <button className={styles.btnDelete} onClick={() => setDeleteConfirm(selected.registration_number)}>Delete</button>
+                    {selected.registration_status === "expired" && (
+                      <button className={styles.btnSave} onClick={() => setRenewConfirm(selected)}>
+                        Renew
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -327,6 +353,7 @@ export default function Registrations() {
         )}
       </div>
 
+      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
@@ -339,6 +366,31 @@ export default function Registrations() {
                 Yes, Delete
               </button>
               <button className={styles.btnCancel} onClick={() => setDeleteConfirm(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Renew Confirmation Modal */}
+      {renewConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>Renew Registration?</h3>
+            <p className={styles.modalBody}>
+              Renew registration for MV number <strong>{renewConfirm.MV_number}</strong>?
+              A new active registration will be created from today with a 5-year expiry.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.btnSave}
+                onClick={() => handleRenew(renewConfirm.MV_number)}
+                disabled={submitting}
+              >
+                {submitting ? "Renewing…" : "Yes, Renew"}
+              </button>
+              <button className={styles.btnCancel} onClick={() => setRenewConfirm(null)}>
                 Cancel
               </button>
             </div>

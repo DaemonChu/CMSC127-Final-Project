@@ -250,8 +250,9 @@ export default function Reports() {
     }
   }, [currentReport, params]);
 
-  const columns = results.length > 0 ? Object.keys(results[0]) : [];
-
+const columns = results.length > 0 
+  ? Object.keys(results[0]).filter((col) => col !== "is_archived") 
+  : [];
   const renderRangeFilter = (f) => (
     <div key={f.key} className={styles.controlGroup}>
       <label className={styles.controlLabel}>

@@ -187,7 +187,7 @@ export default function Reports() {
     return defaultValue ?? "";
   };
 
-  const runReport = useCallback(async () => {
+const runReport = async () => {
     const errors = {};
 
     const resolvedParams = { ...params };
@@ -248,7 +248,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [currentReport, params]);
+  };
 
 const columns = results.length > 0 
   ? Object.keys(results[0]).filter((col) => col !== "is_archived") 

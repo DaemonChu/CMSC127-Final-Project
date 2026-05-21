@@ -513,12 +513,6 @@ export default function Drivers() {
                         >
                           Edit
                         </button>
-                        <button
-                          className={styles.btnSave}
-                          onClick={() => setRenewConfirm(selected)}
-                        >
-                          Renew
-                        </button>
                       </>
                     )}
                     <button
